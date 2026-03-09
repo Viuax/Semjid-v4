@@ -209,10 +209,7 @@ export function BookingPageContent() {
                           {sel&&<div className="absolute top-2 right-2 w-6 h-6 bg-teal rounded-full flex items-center justify-center"><Check size={12} className="text-white"/></div>}
                         </div>
                         <div className="p-3">
-                          <div className="flex items-start justify-between gap-1">
-                            <div className="text-[13px] font-medium text-slate-700">{r.name[lang]}</div>
-                            {r.totalRooms>0&&<span className="text-[10px] bg-slate-100 text-slate-500 rounded px-1.5 py-0.5 shrink-0 whitespace-nowrap">{r.totalRooms} {lang==="mn"?"өрөө":"rooms"}</span>}
-                          </div>
+                          <div className="text-[13px] font-medium text-slate-700">{r.name[lang]}</div>
                           <div className="text-[12px] text-teal font-semibold mt-0.5">{formatMNT(price)}{t.rooms.night[lang]}</div>
                           <div className="text-[10px] text-slate-400 mt-1">
                             {lang==="mn"

@@ -191,11 +191,12 @@ export const services: ServiceItem[] = [
 // ── Rooms ──────────────────────────────────────────────────────
 export interface RoomItem {
   id: string; img: string;
-  type:      { mn: string; en: string };
-  name:      { mn: string; en: string };
-  desc:      { mn: string; en: string };
-  capacity:  number;
-  adult1:    number | null;
+  type:       { mn: string; en: string };
+  name:       { mn: string; en: string };
+  desc:       { mn: string; en: string };
+  capacity:   number;
+  totalRooms: number;
+  adult1:     number | null;
   adult2:    number | null;
   child02:   number | null;
   child37a:  number | null;
@@ -210,42 +211,42 @@ export const rooms: RoomItem[] = [
     type:{ mn:"Люкс өрөө", en:"Luxury Room" },
     name:{ mn:"Люкс өрөө", en:"Luxury Room" },
     desc:{ mn:"Орчин үеийн тав тухтай люкс өрөө.", en:"Modern luxury room with premium amenities." },
-    capacity:2, adult1:null, adult2:113000, child02:43000,
+    capacity:2, totalRooms:3, adult1:null, adult2:113000, child02:43000,
     child37a:null, child37b:null, child812a:null, child812b:68000,
     amenities:[{mn:"Хувийн угаалгын өрөө",en:"Private bathroom"},{mn:"Халуун, хүйтэн ус",en:"Hot & cold water"},{mn:"Олон сувгийн TV",en:"Multi-channel TV"},{mn:"Үнэгүй Wi-Fi",en:"Free Wi-Fi"}] },
   { id:"halflux", img:"/images/image4.jpeg",
     type:{ mn:"Хагас Люкс", en:"Half-Luxury" },
     name:{ mn:"Хагас Люкс өрөө", en:"Half-Luxury Room" },
     desc:{ mn:"Люкс өрөөний бүх тохижилттой, илүү хүртээмжтэй үнэтэй.", en:"All luxury amenities at a more accessible price." },
-    capacity:2, adult1:null, adult2:93000, child02:43000,
+    capacity:2, totalRooms:6, adult1:null, adult2:93000, child02:43000,
     child37a:null, child37b:null, child812a:null, child812b:68000,
     amenities:[{mn:"Хувийн угаалгын өрөө",en:"Private bathroom"},{mn:"Халуун, хүйтэн ус",en:"Hot & cold water"},{mn:"Олон сувгийн TV",en:"Multi-channel TV"},{mn:"Үнэгүй Wi-Fi",en:"Free Wi-Fi"}] },
   { id:"std2", img:"/images/image5.jpeg",
     type:{ mn:"Стандарт өрөө", en:"Standard Room" },
     name:{ mn:"2 Ортой Стандарт өрөө", en:"2-Bed Standard Room" },
     desc:{ mn:"Хосуудад тохиромжтой стандарт 2 ортой өрөө.", en:"Comfortable 2-bed room for couples." },
-    capacity:2, adult1:88000, adult2:null, child02:43000,
+    capacity:2, totalRooms:13, adult1:88000, adult2:null, child02:43000,
     child37a:53000, child37b:null, child812a:68000, child812b:null,
     amenities:[{mn:"Хувийн угаалгын өрөө",en:"Private bathroom"},{mn:"Халуун, хүйтэн ус",en:"Hot & cold water"},{mn:"Олон сувгийн TV",en:"Multi-channel TV"},{mn:"Үнэгүй Wi-Fi",en:"Free Wi-Fi"}] },
   { id:"std4", img:"/images/image6.jpeg",
     type:{ mn:"Стандарт өрөө", en:"Standard Room" },
     name:{ mn:"4 Ортой Стандарт өрөө", en:"4-Bed Standard Room" },
     desc:{ mn:"Гэр бүл болон жижиг бүлгийн аялагчдад 4 ортой өрөө.", en:"4-bed room for families and small groups." },
-    capacity:4, adult1:83000, adult2:88000, child02:43000,
+    capacity:4, totalRooms:15, adult1:83000, adult2:88000, child02:43000,
     child37a:53000, child37b:53000, child812a:68000, child812b:68000,
     amenities:[{mn:"Хувийн угаалгын өрөө",en:"Private bathroom"},{mn:"Халуун, хүйтэн ус",en:"Hot & cold water"},{mn:"Олон сувгийн TV",en:"Multi-channel TV"},{mn:"Үнэгүй Wi-Fi",en:"Free Wi-Fi"}] },
   { id:"std5", img:"/images/image3.jpeg",
     type:{ mn:"Стандарт өрөө", en:"Standard Room" },
     name:{ mn:"5 Ортой Стандарт өрөө", en:"5-Bed Standard Room" },
     desc:{ mn:"Том гэр бүл, бүлгийн аялагчдад тохиромжтой.", en:"Spacious room for large families and groups." },
-    capacity:5, adult1:83000, adult2:null, child02:43000,
+    capacity:5, totalRooms:2, adult1:83000, adult2:null, child02:43000,
     child37a:53000, child37b:null, child812a:68000, child812b:null,
     amenities:[{mn:"Хувийн угаалгын өрөө",en:"Private bathroom"},{mn:"Халуун, хүйтэн ус",en:"Hot & cold water"},{mn:"Олон сувгийн TV",en:"Multi-channel TV"},{mn:"Үнэгүй Wi-Fi",en:"Free Wi-Fi"}] },
   { id:"summer", img:"/images/resort-nature.jpg",
     type:{ mn:"Зуны байр", en:"Summer Cottage" },
     name:{ mn:"Зуны байр", en:"Summer Cottage" },
     desc:{ mn:"Зуны улиралд (VI–IX сар) нээлттэй. Байгалийн орчинд тайван амрах боломж.", en:"Open June–September. Peaceful natural surroundings." },
-    capacity:3, adult1:78000, adult2:null, child02:43000,
+    capacity:3, totalRooms:0, adult1:78000, adult2:null, child02:43000,
     child37a:53000, child37b:null, child812a:68000, child812b:null,
     amenities:[{mn:"Зуны улиралд нээлттэй",en:"Open June–September"},{mn:"Байгалийн орчин",en:"Natural surroundings"}] },
 ];
