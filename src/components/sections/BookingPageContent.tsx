@@ -60,10 +60,12 @@ export function BookingPageContent() {
         .gte("to_date", form.checkin);
       const bookedIds = (bk || []).map((b: {room_id: string}) => b.room_id);
       const blockedIds = (bl || []).map((b: {room_id: string}) => b.room_id);
-      setBlockedRooms([...new Set([...bookedIds, ...blockedIds])]);
+      const all = [...bookedIds, ...blockedIds];
+      setBlockedRooms(all.filter((v, i) => all.indexOf(v) === i));
     };
     checkAvailability();
   }, [form.checkin, form.checkout]);
+
   const toggleSvc = (id: string) => setForm(f => ({
     ...f, svcIds: f.svcIds.includes(id) ? f.svcIds.filter(s => s !== id) : [...f.svcIds, id],
   }));
