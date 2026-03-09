@@ -1,9 +1,9 @@
+// debug v2
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 
 export async function POST(req: NextRequest) {
   try {
-    // Log env vars (masked)
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const svc = process.env.SUPABASE_SERVICE_ROLE_KEY;
     console.log("Supabase URL:", url ? url.slice(0, 30) + "..." : "MISSING");
@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
 
     if (uploadError) {
       console.error("Upload error details:", JSON.stringify(uploadError));
-      return NextResponse.json({ 
+      return NextResponse.json({
         error: uploadError.message,
         details: JSON.stringify(uploadError)
       }, { status: 500 });
