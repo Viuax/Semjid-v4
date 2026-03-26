@@ -13,16 +13,18 @@ export async function GET(req: NextRequest) {
   const checkout = searchParams.get("checkout");
 
   if (!roomId || !checkin || !checkout)
-    return NextResponse.json({ available: true });
+    return NextResponse.json({ available: true, guests: 0, bookingCount: 0 });
 
   const { data, error } = await supabase
     .from("bookings")
-    .select("id")
+    .select("guests")
     .eq("room_id", roomId)
     .neq("status", "cancelled")
-    .lt("checkin", checkout)   // existing booking starts before my checkout
-    .gt("checkout", checkin);  // existing booking ends after my checkin
+    .lt("checkin", checkout)
+    .gt("checkout", checkin);
 
-  if (error) return NextResponse.json({ available: true });
-  return NextResponse.json({ available: data.length === 0 });
+  if (error) return NextResponse.json({ available: true, guests: 0, bookingCount: 0 });
+
+  const totalGuests = data.reduce((sum, b) => sum + (Number(b.guests) || 0), 0);
+  return NextResponse.json({ available: data.length === 0, guests: totalGuests, bookingCount: data.length });
 }

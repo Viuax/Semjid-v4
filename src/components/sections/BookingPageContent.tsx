@@ -1,16 +1,16 @@
 "use client";
-import { useState, useMemo, useRef, useCallback, useEffect } from "react";
+import { useState, useMemo, useRef, useCallback } from "react";
 import Image from "next/image";
 import {
   CheckCircle, QrCode, Building2, Banknote, Check, Loader2,
-  UploadCloud, FileText, X, AlertCircle, Info, Lock,
+  UploadCloud, FileText, X, AlertCircle, Info, Users,
 } from "lucide-react";
 import { useLang } from "@/lib/lang-context";
 import { t, rooms, services, formatMNT, PHONE1, PHONE2 } from "@/lib/data";
-import { supabase } from "@/lib/supabase";
 
 type Step = 1 | 2 | 3;
 type PayMethod = "qpay" | "card" | "bank" | "cash";
+type RoomInfo = { available: boolean; guests: number; bookingCount: number };
 
 export function BookingPageContent() {
   const { lang } = useLang();
@@ -20,7 +20,10 @@ export function BookingPageContent() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [pay, setPay] = useState<PayMethod>("qpay");
-  const [blockedRooms, setBlockedRooms] = useState<string[]>([]);
+
+  // Availability state
+  const [roomAvailability, setRoomAvailability] = useState<Record<string, RoomInfo>>({});
+  const [checkingRoom, setCheckingRoom] = useState<string | null>(null);
 
   // Ilgeeh bichig state
   const [ilgeehFile, setIlgeehFile] = useState<File | null>(null);
@@ -40,32 +43,6 @@ export function BookingPageContent() {
   });
 
   const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }));
-
-  // Check room availability when dates change
-  useEffect(() => {
-    if (!form.checkin || !form.checkout) { setBlockedRooms([]); return; }
-    const checkAvailability = async () => {
-      // Get bookings that overlap with selected dates
-      const { data: bk } = await supabase
-        .from("bookings")
-        .select("room_id")
-        .not("status", "eq", "cancelled")
-        .lt("check_in", form.checkout)
-        .gt("check_out", form.checkin);
-      // Get manual blocks that overlap
-      const { data: bl } = await supabase
-        .from("room_blocks")
-        .select("room_id")
-        .lte("from_date", form.checkout)
-        .gte("to_date", form.checkin);
-      const bookedIds = (bk || []).map((b: {room_id: string}) => b.room_id);
-      const blockedIds = (bl || []).map((b: {room_id: string}) => b.room_id);
-      const all = [...bookedIds, ...blockedIds];
-      setBlockedRooms(all.filter((v, i) => all.indexOf(v) === i));
-    };
-    checkAvailability();
-  }, [form.checkin, form.checkout]);
-
   const toggleSvc = (id: string) => setForm(f => ({
     ...f, svcIds: f.svcIds.includes(id) ? f.svcIds.filter(s => s !== id) : [...f.svcIds, id],
   }));
@@ -84,6 +61,26 @@ export function BookingPageContent() {
 
   const inp = "w-full bg-slate-50 border border-slate-200 focus:border-teal focus:bg-white outline-none px-4 py-2.5 text-[14px] text-slate-700 rounded-lg transition-colors";
   const lbl = "text-[11px] tracking-[0.12em] uppercase text-slate-400 block mb-1.5";
+
+  // ── Availability ────────────────────────────────────────────────────────────
+  const checkRoomAvailability = useCallback(async (roomId: string, checkin: string, checkout: string) => {
+    setCheckingRoom(roomId);
+    try {
+      const res = await fetch(`/api/availability?roomId=${roomId}&checkin=${checkin}&checkout=${checkout}`);
+      const data = await res.json();
+      setRoomAvailability(prev => ({ ...prev, [roomId]: data }));
+    } catch {
+      setRoomAvailability(prev => ({ ...prev, [roomId]: { available: true, guests: 0, bookingCount: 0 } }));
+    } finally {
+      setCheckingRoom(null);
+    }
+  }, []);
+
+  const checkAllRooms = useCallback((checkin: string, checkout: string) => {
+    setRoomAvailability({});
+    rooms.forEach(r => checkRoomAvailability(r.id, checkin, checkout));
+  }, [checkRoomAvailability]);
+  // ───────────────────────────────────────────────────────────────────────────
 
   const handleFileSelect = useCallback(async (file: File) => {
     const allowed = ["application/pdf", "image/jpeg", "image/png", "image/jpg", "image/webp"];
@@ -163,8 +160,12 @@ export function BookingPageContent() {
     </div>
   );
 
+  const sanamjItems = t.booking.sanamj as { mn: string; en: string }[];
+
+  // 3-step flow now
   const steps = [
-    { n: 1, l: t.booking.s1 }, { n: 2, l: t.booking.s2 },
+    { n: 1, l: t.booking.s1 },
+    { n: 2, l: t.booking.s2 },
     { n: 3, l: t.booking.s3 },
   ] as const;
 
@@ -198,7 +199,7 @@ export function BookingPageContent() {
       <div className="max-w-7xl mx-auto px-6 lg:px-10 py-10 grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2">
 
-          {/* STEP 1 */}
+          {/* STEP 1 — Personal info + Илгээх бичиг + Санамж */}
           {step === 1 && (
             <div className="space-y-5">
               {/* Personal info */}
@@ -220,50 +221,52 @@ export function BookingPageContent() {
                 </div>
               </div>
 
-              {/* Ilgeeh bichig upload */}
+              {/* Илгээх бичиг */}
               <div className="bg-white rounded-2xl p-6 shadow-sm">
-                <div className="flex items-start gap-3 mb-4">
+                <div className="flex items-start gap-3 mb-2">
                   <FileText size={22} className="text-teal mt-0.5 shrink-0" />
                   <div>
                     <h2 className="font-serif text-xl text-slate-800">{t.booking.ilgeeh.title[lang]}</h2>
                     <p className="text-[13px] text-slate-400 mt-1">{t.booking.ilgeeh.sub[lang]}</p>
                   </div>
                 </div>
-                {!ilgeehFile ? (
-                  <div
-                    onDragOver={e=>{e.preventDefault();setIsDragging(true);}}
-                    onDragLeave={()=>setIsDragging(false)}
-                    onDrop={handleDrop}
-                    onClick={()=>fileInputRef.current?.click()}
-                    className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all ${isDragging?"border-teal bg-teal/5":"border-slate-200 hover:border-teal/50 hover:bg-slate-50"}`}
-                  >
-                    <UploadCloud size={36} className={`mx-auto mb-3 ${isDragging?"text-teal":"text-slate-300"}`}/>
-                    <p className="text-[14px] text-slate-500 font-medium">{t.booking.ilgeeh.dragDrop[lang]}</p>
-                    <p className="text-[11px] text-slate-300 mt-1">PDF, JPG, PNG — max 10MB</p>
-                    <input ref={fileInputRef} type="file" accept="application/pdf,image/*" className="hidden" onChange={e=>{const f=e.target.files?.[0];if(f)handleFileSelect(f);}}/>
-                  </div>
-                ) : (
-                  <div className={`border rounded-xl p-4 flex items-center gap-3 ${ilgeehUrl?"border-teal/30 bg-teal/5":"border-slate-200 bg-slate-50"}`}>
-                    <FileText size={24} className={ilgeehUrl?"text-teal":"text-slate-400"}/>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[13px] font-medium text-slate-700 truncate">{ilgeehFile.name}</p>
-                      <p className={`text-[12px] mt-0.5 ${ilgeehUrl?"text-teal":"text-slate-400"}`}>
-                        {uploading ? t.booking.ilgeeh.uploading[lang] : ilgeehUrl ? t.booking.ilgeeh.uploaded[lang] : uploadError}
-                      </p>
+                <div className="mt-5">
+                  {!ilgeehFile ? (
+                    <div
+                      onDragOver={e=>{e.preventDefault();setIsDragging(true);}}
+                      onDragLeave={()=>setIsDragging(false)}
+                      onDrop={handleDrop}
+                      onClick={()=>fileInputRef.current?.click()}
+                      className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all ${isDragging?"border-teal bg-teal/5":"border-slate-200 hover:border-teal/50 hover:bg-slate-50"}`}
+                    >
+                      <UploadCloud size={36} className={`mx-auto mb-3 ${isDragging?"text-teal":"text-slate-300"}`}/>
+                      <p className="text-[14px] text-slate-500 font-medium">{t.booking.ilgeeh.dragDrop[lang]}</p>
+                      <p className="text-[11px] text-slate-300 mt-1">PDF, JPG, PNG — max 10MB</p>
+                      <input ref={fileInputRef} type="file" accept="application/pdf,image/*" className="hidden" onChange={e=>{const f=e.target.files?.[0];if(f)handleFileSelect(f);}}/>
                     </div>
-                    {uploading
-                      ? <Loader2 size={18} className="text-teal animate-spin shrink-0"/>
-                      : <button onClick={()=>{setIlgeehFile(null);setIlgeehUrl("");setUploadError("");}} className="text-slate-400 hover:text-red-400 transition-colors cursor-pointer shrink-0"><X size={18}/></button>
-                    }
-                  </div>
-                )}
-                {uploadError&&<div className="mt-2 flex items-center gap-2 text-red-500 text-[12px]"><AlertCircle size={14}/>{uploadError}</div>}
-                <p className="text-[11px] text-slate-400 mt-3 flex items-center gap-1.5">
-                  <Info size={12} className="shrink-0"/>{t.booking.ilgeeh.optional[lang]}
-                </p>
+                  ) : (
+                    <div className={`border rounded-xl p-4 flex items-center gap-3 ${ilgeehUrl?"border-teal/30 bg-teal/5":"border-slate-200 bg-slate-50"}`}>
+                      <FileText size={24} className={ilgeehUrl?"text-teal":"text-slate-400"}/>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[13px] font-medium text-slate-700 truncate">{ilgeehFile.name}</p>
+                        <p className={`text-[12px] mt-0.5 ${ilgeehUrl?"text-teal":"text-slate-400"}`}>
+                          {uploading ? t.booking.ilgeeh.uploading[lang] : ilgeehUrl ? t.booking.ilgeeh.uploaded[lang] : uploadError}
+                        </p>
+                      </div>
+                      {uploading
+                        ? <Loader2 size={18} className="text-teal animate-spin shrink-0"/>
+                        : <button onClick={()=>{setIlgeehFile(null);setIlgeehUrl("");setUploadError("");}} className="text-slate-400 hover:text-red-400 transition-colors cursor-pointer shrink-0"><X size={18}/></button>
+                      }
+                    </div>
+                  )}
+                  {uploadError&&<div className="mt-2 flex items-center gap-2 text-red-500 text-[12px]"><AlertCircle size={14}/>{uploadError}</div>}
+                  <p className="text-[11px] text-slate-400 mt-3 flex items-center gap-1.5">
+                    <Info size={12} className="shrink-0"/>{t.booking.ilgeeh.optional[lang]}
+                  </p>
+                </div>
               </div>
 
-              {/* Sanamj checklist */}
+              {/* Санамж checklist */}
               <div className="bg-white rounded-2xl p-6 shadow-sm">
                 <div className="flex items-center gap-2 mb-1">
                   <div className="w-2 h-2 rounded-full bg-amber-400"/>
@@ -273,76 +276,140 @@ export function BookingPageContent() {
                   {t.booking.ilgeeh.sanamjTitle[lang]}
                 </p>
                 <div className="space-y-3">
-                  {(t.booking.sanamj as {mn:string;en:string}[]).map((item, i) => (
+                  {sanamjItems.map((item, i) => (
                     <div key={i} onClick={()=>toggleCheck(i)} className={`flex items-start gap-3 p-3.5 rounded-xl border cursor-pointer transition-all select-none ${checkedItems[i]?"border-teal/30 bg-teal/5":"border-slate-100 hover:border-slate-200 hover:bg-slate-50"}`}>
                       <div className={`w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 mt-0.5 transition-all ${checkedItems[i]?"border-teal bg-teal":"border-slate-300"}`}>
                         {checkedItems[i]&&<Check size={11} className="text-white"/>}
                       </div>
                       <p className={`text-[13px] leading-relaxed transition-colors ${checkedItems[i]?"text-slate-400 line-through":"text-slate-700"}`}>
-                        <span className="font-semibold text-teal mr-1">{i+1}.</span>{item[lang]}
+                        <span className="font-semibold text-teal mr-1 no-underline" style={{textDecoration:"none"}}>{i+1}.</span>
+                        {item[lang]}
                       </p>
                     </div>
                   ))}
                 </div>
                 <div className="mt-5 pt-4 border-t border-slate-100">
                   <div className="flex justify-between items-center mb-2">
-                    <span className="text-[11px] text-slate-400">{lang==="mn"?`${checkedItems.filter(Boolean).length}/${(t.booking.sanamj as []).length} зүйл уншсан`:`${checkedItems.filter(Boolean).length}/${(t.booking.sanamj as []).length} items acknowledged`}</span>
-                    {checkedItems.every(Boolean)&&<span className="text-[11px] text-teal font-semibold flex items-center gap-1"><Check size={12}/>{lang==="mn"?"Бүгдийг уншсан":"All acknowledged"}</span>}
+                    <span className="text-[11px] text-slate-400">
+                      {lang==="mn"?`${checkedItems.filter(Boolean).length}/${sanamjItems.length} зүйл уншсан`:`${checkedItems.filter(Boolean).length}/${sanamjItems.length} items acknowledged`}
+                    </span>
+                    {checkedItems.every(Boolean)&&(
+                      <span className="text-[11px] text-teal font-semibold flex items-center gap-1">
+                        <Check size={12}/>{lang==="mn"?"Бүгдийг уншсан":"All acknowledged"}
+                      </span>
+                    )}
                   </div>
                   <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                    <div className="h-full bg-teal rounded-full transition-all duration-500" style={{width:`${(checkedItems.filter(Boolean).length/(t.booking.sanamj as []).length)*100}%`}}/>
+                    <div className="h-full bg-teal rounded-full transition-all duration-500" style={{width:`${(checkedItems.filter(Boolean).length/sanamjItems.length)*100}%`}}/>
                   </div>
                 </div>
               </div>
 
               {error && <p className="text-red-500 text-[12px]">{error}</p>}
-              <button onClick={()=>{if(!form.fname||!form.lname||!form.phone||!form.checkin||!form.checkout){setError(lang==="mn"?"Заавал талбаруудыг бөглөнө үү.":"Please fill required fields.");return;}setError("");setStep(2);}} className="text-[13px] font-medium bg-teal hover:bg-teal-dark text-white px-8 py-3 rounded-lg transition-colors cursor-pointer">{t.booking.next[lang]}</button>
+              <button
+                onClick={() => {
+                  if (!form.fname||!form.lname||!form.phone||!form.checkin||!form.checkout) {
+                    setError(lang==="mn"?"Заавал талбаруудыг бөглөнө үү.":"Please fill required fields.");
+                    return;
+                  }
+                  setError("");
+                  checkAllRooms(form.checkin, form.checkout);
+                  setStep(2);
+                }}
+                className="text-[13px] font-medium bg-teal hover:bg-teal-dark text-white px-8 py-3 rounded-lg transition-colors cursor-pointer"
+              >
+                {t.booking.next[lang]}
+              </button>
             </div>
           )}
 
-          {/* STEP 2 */}
+          {/* STEP 2 — Өрөө & Эмчилгээ */}
           {step === 2 && (
             <div className="space-y-5">
               <div className="bg-white rounded-2xl p-6 shadow-sm">
-                <h2 className="font-serif text-xl text-slate-800 mb-5">{t.rooms.title[lang]}</h2>
+                <div className="flex items-center justify-between mb-5">
+                  <h2 className="font-serif text-xl text-slate-800">{t.rooms.title[lang]}</h2>
+                  <button
+                    onClick={() => checkAllRooms(form.checkin, form.checkout)}
+                    className="text-[11px] text-teal border border-teal/30 px-3 py-1.5 rounded-lg hover:bg-teal/5 transition-colors cursor-pointer flex items-center gap-1.5"
+                  >
+                    <Loader2 size={11} className={checkingRoom ? "animate-spin" : ""} />
+                    {lang === "mn" ? "Дахин шалгах" : "Recheck"}
+                  </button>
+                </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {rooms.map(r => {
-                    const price = r.adult2??r.adult1??0;
-                    const sel = form.roomId===r.id;
-                    const unavailable = blockedRooms.includes(r.id);
+                    const price = r.adult2 ?? r.adult1 ?? 0;
+                    const sel = form.roomId === r.id;
+                    const roomInfo = roomAvailability[r.id] ?? { available: true, guests: 0, bookingCount: 0 };
+                    const isAvailable = roomInfo.available;
+                    const isChecking = checkingRoom === r.id;
+                    const hasChecked = r.id in roomAvailability;
+                    const isUnavailable = hasChecked && !isAvailable;
+
                     return (
-                      <div key={r.id}
-                        onClick={()=>{ if(!unavailable) set("roomId", r.id); }}
-                        className={`border-2 rounded-xl overflow-hidden transition-all ${unavailable?"opacity-60 cursor-not-allowed border-slate-100":sel?"border-teal shadow-lg shadow-teal/10 cursor-pointer":"border-slate-100 hover:border-slate-200 cursor-pointer"}`}>
+                      <div
+                        key={r.id}
+                        onClick={() => { if (isUnavailable) return; set("roomId", r.id); }}
+                        className={`border-2 rounded-xl overflow-hidden transition-all
+                          ${isUnavailable
+                            ? "border-red-200 opacity-70 cursor-not-allowed"
+                            : sel
+                            ? "border-teal shadow-lg shadow-teal/10 cursor-pointer"
+                            : "border-slate-100 hover:border-slate-200 cursor-pointer"
+                          }`}
+                      >
                         <div className="relative h-32 overflow-hidden">
-                          <Image src={r.img} alt={r.name[lang]} fill className="object-cover"/>
-                          {sel&&!unavailable&&<div className="absolute top-2 right-2 w-6 h-6 bg-teal rounded-full flex items-center justify-center"><Check size={12} className="text-white"/></div>}
-                          {unavailable&&(
-                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                              <div className="bg-red-500 text-white text-[11px] font-semibold px-3 py-1.5 rounded-full flex items-center gap-1.5">
-                                <Lock size={11}/>{lang==="mn"?"Захиалга дүүрсэн":"Unavailable"}
-                              </div>
+                          <Image src={r.img} alt={r.name[lang]} fill className="object-cover" />
+                          {sel && !isUnavailable && (
+                            <div className="absolute top-2 right-2 w-6 h-6 bg-teal rounded-full flex items-center justify-center">
+                              <Check size={12} className="text-white" />
                             </div>
                           )}
+                          {(isChecking || hasChecked) && (
+                            <div className={`absolute top-2 left-2 px-2 py-0.5 rounded-full text-[10px] font-semibold flex items-center gap-1
+                              ${isChecking ? "bg-white/90 text-slate-500"
+                                : isUnavailable ? "bg-red-500 text-white"
+                                : "bg-green-500 text-white"}`}
+                            >
+                              {isChecking
+                                ? <><Loader2 size={9} className="animate-spin" />{lang === "mn" ? "Шалгаж байна..." : "Checking..."}</>
+                                : isUnavailable
+                                ? <>{lang === "mn" ? "✗ Захиалагдсан" : "✗ Booked"}</>
+                                : <>{lang === "mn" ? "✓ Боломжтой" : "✓ Available"}</>
+                              }
+                            </div>
+                          )}
+                          {isUnavailable && <div className="absolute inset-0 bg-red-900/10" />}
                         </div>
                         <div className="p-3">
-                          <div className="flex items-start justify-between gap-1">
-                            <div className="text-[13px] font-medium text-slate-700">{r.name[lang]}</div>
-                            {r.totalRooms>0&&<span className="text-[10px] bg-slate-100 text-slate-500 rounded px-1.5 py-0.5 shrink-0 whitespace-nowrap">{r.totalRooms} {lang==="mn"?"өрөө":"rooms"}</span>}
-                          </div>
-                          <div className={`text-[12px] font-semibold mt-0.5 ${unavailable?"text-slate-400":"text-teal"}`}>{formatMNT(price)}{t.rooms.night[lang]}</div>
+                          <div className="text-[13px] font-medium text-slate-700">{r.name[lang]}</div>
+                          <div className="text-[12px] text-teal font-semibold mt-0.5">{formatMNT(price)}{t.rooms.night[lang]}</div>
                           <div className="text-[10px] text-slate-400 mt-1">
                             {lang==="mn"
                               ?`0–2 нас: ${formatMNT(r.child02??0)} · 3–7 нас: ${formatMNT(r.child37a??r.child37b??0)} · 8–12 нас: ${formatMNT(r.child812a??r.child812b??0)}`
                               :`0–2 yrs: ${formatMNT(r.child02??0)} · 3–7 yrs: ${formatMNT(r.child37a??r.child37b??0)} · 8–12 yrs: ${formatMNT(r.child812a??r.child812b??0)}`
                             }
                           </div>
+                          {hasChecked && !isChecking && (
+                            <div className={`mt-2 pt-2 border-t flex items-center gap-1.5 ${isUnavailable ? "border-red-100" : "border-slate-100"}`}>
+                              <Users size={10} className={isUnavailable ? "text-red-400" : "text-green-500"} />
+                              {isUnavailable && roomInfo.guests > 0 ? (
+                                <span className="text-[10px] text-red-400">
+                                  {lang === "mn" ? `${roomInfo.guests} зочин байршиж байна` : `${roomInfo.guests} guest${roomInfo.guests > 1 ? "s" : ""} staying`}
+                                </span>
+                              ) : !isUnavailable ? (
+                                <span className="text-[10px] text-green-600">{lang === "mn" ? "Захиалах боломжтой" : "Ready to book"}</span>
+                              ) : null}
+                            </div>
+                          )}
                         </div>
                       </div>
                     );
                   })}
                 </div>
               </div>
+
               <div className="bg-white rounded-2xl p-6 shadow-sm">
                 <h2 className="font-serif text-xl text-slate-800 mb-5">{t.booking.addTreat[lang]}</h2>
                 <div className="space-y-2">
@@ -357,19 +424,29 @@ export function BookingPageContent() {
                   ); })}
                 </div>
               </div>
+
               <div className="bg-white rounded-2xl p-6 shadow-sm">
                 <label className={lbl}>{t.booking.notes[lang]}</label>
                 <textarea value={form.notes} onChange={e=>set("notes",e.target.value)} rows={3} className={inp+" resize-none"}/>
               </div>
+
               {error && <p className="text-red-500 text-[12px]">{error}</p>}
               <div className="flex gap-3">
                 <button onClick={()=>setStep(1)} className="text-[13px] text-slate-500 border border-slate-200 px-6 py-3 rounded-lg cursor-pointer">{t.booking.back[lang]}</button>
-                <button onClick={()=>{if(!form.roomId){setError(lang==="mn"?"Өрөө сонгоно уу.":"Please select a room.");return;}setError("");setStep(3);}} className="text-[13px] font-medium bg-teal text-white px-8 py-3 rounded-lg cursor-pointer">{t.booking.next[lang]}</button>
+                <button
+                  onClick={() => {
+                    if (!form.roomId) { setError(lang==="mn"?"Өрөө сонгоно уу.":"Please select a room."); return; }
+                    setError(""); setStep(3);
+                  }}
+                  className="text-[13px] font-medium bg-teal text-white px-8 py-3 rounded-lg cursor-pointer"
+                >
+                  {t.booking.next[lang]}
+                </button>
               </div>
             </div>
           )}
 
-          {/* STEP 3 */}
+          {/* STEP 3 — Төлбөр */}
           {step === 3 && (
             <div className="space-y-5">
               <div className="bg-white rounded-2xl p-6 shadow-sm">
@@ -385,14 +462,28 @@ export function BookingPageContent() {
                 {pay==="bank"&&(<div className="border border-slate-100 rounded-xl p-5 bg-slate-50"><h3 className="text-[13px] font-semibold text-slate-700 mb-3">{lang==="mn"?"Дансны мэдээлэл":"Bank Account Details"}</h3>{[[lang==="mn"?"Хүлээн авагч":"Recipient","Батмөнх Цэрэнханд"],[lang==="mn"?"Данс":"Account","08 0005 00 557333756 (Хаан Банк)"],[lang==="mn"?"Утга":"Reference",t.booking.bankRef[lang]],[lang==="mn"?"Дүн":"Amount",formatMNT(total)]].map(([k,v]) => (<div key={k} className="flex justify-between py-2 border-b border-slate-100 last:border-0"><span className="text-[12px] text-slate-400">{k}</span><span className="text-[12px] font-medium text-slate-700">{v}</span></div>))}</div>)}
                 {(pay==="card"||pay==="cash")&&(<div className="border border-slate-100 rounded-xl p-5 bg-slate-50 text-center"><p className="text-[14px] text-slate-500">{pay==="card"?(lang==="mn"?"Ирэх үедээ картаар төлнө үү.":"Pay by card on arrival."):(lang==="mn"?"Ирэх үедээ бэлэн мөнгөөр төлнө үү.":"Pay in cash upon arrival.")}</p></div>)}
               </div>
+
+              {/* Uploaded letter status */}
+              {ilgeehUrl && (
+                <div className="bg-teal/5 border border-teal/20 rounded-xl px-4 py-3 flex items-center gap-2">
+                  <Check size={14} className="text-teal shrink-0"/>
+                  <p className="text-[12px] text-teal">{lang==="mn"?"Илгээх бичиг байршуулагдсан":"Referral letter uploaded"}</p>
+                </div>
+              )}
+
               {error&&<div className="bg-red-50 border border-red-100 text-red-600 text-[13px] rounded-lg px-4 py-3">{error}</div>}
               <div className="flex gap-3">
                 <button onClick={()=>setStep(2)} className="text-[13px] text-slate-500 border border-slate-200 px-6 py-3 rounded-lg cursor-pointer">{t.booking.back[lang]}</button>
-                <button onClick={handleSubmit} disabled={loading||uploading} className="flex-1 flex items-center justify-center gap-2 text-[13px] font-medium bg-teal hover:bg-teal-dark text-white py-3 rounded-lg cursor-pointer transition-colors disabled:opacity-60">{loading?<><Loader2 size={14} className="animate-spin"/>{lang==="mn"?"Илгээж байна...":"Submitting..."}</>:t.booking.submit[lang]}</button>
+                <button
+                  onClick={handleSubmit}
+                  disabled={loading||uploading}
+                  className="flex-1 flex items-center justify-center gap-2 text-[13px] font-medium bg-teal hover:bg-teal-dark text-white py-3 rounded-lg cursor-pointer transition-colors disabled:opacity-60"
+                >
+                  {loading?<><Loader2 size={14} className="animate-spin"/>{lang==="mn"?"Илгээж байна...":"Submitting..."}</>:t.booking.submit[lang]}
+                </button>
               </div>
             </div>
           )}
-
         </div>
 
         {/* Sidebar */}
@@ -406,12 +497,11 @@ export function BookingPageContent() {
               <span className="font-serif text-xl text-teal">{formatMNT(total)}</span>
             </div>
             {nights>0&&<p className="text-[11px] text-slate-300 mt-1 text-right">{nights} {t.booking.nights[lang]}</p>}
-            {step===1&&(
-              <div className={`mt-4 pt-4 border-t border-slate-100 rounded-lg p-3 text-center ${ilgeehUrl?"bg-teal/5 border border-teal/20":"bg-slate-50"}`}>
-                {ilgeehUrl
-                  ?<p className="text-[11px] text-teal flex items-center justify-center gap-1.5"><Check size={12}/>{lang==="mn"?"Илгээх бичиг байршуулагдсан":"Referral letter uploaded"}</p>
-                  :<p className="text-[11px] text-slate-400">{lang==="mn"?"Илгээх бичиг: байхгүй":"Referral letter: not uploaded"}</p>
-                }
+            {ilgeehUrl && (
+              <div className="mt-4 pt-4 border-t border-slate-100 bg-teal/5 rounded-lg p-3 text-center">
+                <p className="text-[11px] text-teal flex items-center justify-center gap-1.5">
+                  <Check size={12}/>{lang==="mn"?"Илгээх бичиг байршуулагдсан":"Referral letter uploaded"}
+                </p>
               </div>
             )}
             <div className="mt-4 pt-4 border-t border-slate-100">

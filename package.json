@@ -9,9 +9,11 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.98.0",
+    "@anthropic-ai/sdk": "^0.79.0",
+    "@supabase/supabase-js": "^2.99.0",
     "clsx": "^2.1.0",
     "framer-motion": "^11.0.0",
+    "groq-sdk": "^1.1.1",
     "lucide-react": "^0.475.0",
     "next": "14.2.0",
     "react": "^18",

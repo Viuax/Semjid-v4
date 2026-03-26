@@ -3,10 +3,19 @@ import Image from "next/image";
 import Link from "next/link";
 import { Users, Check, ArrowRight } from "lucide-react";
 import { useLang } from "@/lib/lang-context";
-import { t, rooms, formatMNT } from "@/lib/data";
+import { t, rooms as staticRooms, formatMNT } from "@/lib/data";
+import { getDynamicRooms } from "@/lib/dynamic-data";
+import { useState, useEffect } from "react";
+import type { RoomItem } from "@/lib/data";
 
 export function RoomsPageContent() {
   const { lang } = useLang();
+  const [rooms, setRooms] = useState<RoomItem[]>(staticRooms);
+
+  useEffect(() => {
+    getDynamicRooms().then(setRooms);
+  }, []);
+
   return (
     <div className="bg-slate-50">
       <div className="relative h-64 overflow-hidden">
