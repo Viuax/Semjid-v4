@@ -1,4 +1,5 @@
 "use client";
+
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, CheckCircle } from "lucide-react";
@@ -12,13 +13,13 @@ export function AboutSection() {
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-14 items-start">
         <div className="grid grid-cols-2 gap-3">
           <div className="col-span-2 relative h-56 rounded-xl overflow-hidden">
-            <Image src="/images/resort-building.jpg" alt="Resort" fill className="object-cover" />
+            <Image src="/images/resort-building.jpg" alt="Resort" fill sizes="(max-width: 1024px) 100vw, 50vw" className="object-cover" />
           </div>
           <div className="relative h-40 rounded-xl overflow-hidden">
-            <Image src="/images/resort-nature.jpg" alt="Nature" fill className="object-cover" />
+            <Image src="/images/resort-nature.jpg" alt="Nature" fill sizes="(max-width: 1024px) 50vw, 25vw" className="object-cover" />
           </div>
           <div className="relative h-40 rounded-xl overflow-hidden">
-            <Image src="/images/therapy-mud.jpg" alt="Therapy" fill className="object-cover" />
+            <Image src="/images/therapy-mud.jpg" alt="Therapy" fill sizes="(max-width: 1024px) 50vw, 25vw" className="object-cover" />
           </div>
         </div>
         <div>

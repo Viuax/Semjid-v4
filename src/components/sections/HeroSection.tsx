@@ -15,8 +15,10 @@ export function HeroSection() {
           src="/images/hero-main.png"
           alt="Сэмжид Хужирт"
           fill
+          sizes="100vw"
           className="object-cover"
           priority
+          loading="eager"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-slate-900/95 via-slate-900/50 to-slate-800/20" />
       </div>
@@ -24,7 +26,7 @@ export function HeroSection() {
       {/* Logo top-right */}
       <div className="absolute top-6 right-6 z-10">
         <div className="relative w-16 h-16 opacity-90">
-          <Image src="/images/hero-main.png" alt="Logo" fill className="object-contain drop-shadow-lg" />
+          <Image src="/images/hero-main.png" alt="Logo" fill sizes="64px" className="object-contain drop-shadow-lg" />
         </div>
       </div>
 

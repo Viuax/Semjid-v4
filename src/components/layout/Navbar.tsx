@@ -48,7 +48,7 @@ export function Navbar() {
         <div className="max-w-7xl mx-auto px-6 lg:px-10 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-3">
             <div className="relative w-12 h-12">
-              <Image src="/images/logo.png" alt="Logo" fill className="object-contain" />
+              <Image src="/images/logo.png" alt="Logo" fill sizes="48px" className="object-contain" />
             </div>
             <div>
               <div className="font-serif text-[15px] font-semibold text-teal-dark leading-tight">Сэмжид Хужирт</div>
