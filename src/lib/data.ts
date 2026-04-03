@@ -15,7 +15,7 @@ export function formatMNT(n: number): string {
 export const t = {
   nav: {
     home:     { mn: "Нүүр",         en: "Home" },
-    about:    { mn: "Бидний тухай", en: "About Us" },
+    about:    { mn: "Бидний тухай", en: "About Us" }, 
     rooms:    { mn: "Байр, өрөө",   en: "Rooms" },
     services: { mn: "Эмчилгээ",     en: "Treatments" },
     booking:  { mn: "Захиалга",     en: "Book Now" },

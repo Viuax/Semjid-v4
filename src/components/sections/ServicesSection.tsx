@@ -63,7 +63,13 @@ export function ServicesSection() {
                 <div key={s.id} className="bg-white rounded-xl overflow-hidden border border-slate-100 hover:shadow-lg hover:border-teal/20 transition-all group">
                   
                   <div className="relative h-48 overflow-hidden">
-                    <Image src={s.img} alt={s.name?.[lang] ?? ""} fill className="object-cover group-hover:scale-105 transition-transform duration-500" />
+                    <Image
+                      src={s.img}
+                      alt={s.name?.[lang] ?? ""}
+                      fill
+                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                      className="object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
 
                     {badge && (
                       <span className="absolute top-3 left-3 bg-teal text-white text-[10px] px-2.5 py-1 rounded-full">
