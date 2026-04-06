@@ -7,11 +7,11 @@ import { useLang } from "@/lib/lang-context";
 import { t, formatMNT } from "@/lib/data";
 import { getDynamicServices } from "@/lib/dynamic-data";
 import { useEffect, useState } from "react";
-import type { RoomItem } from "@/lib/data";
+import type { ServiceItem } from "@/lib/data";
 
 export function ServicesSection() {
   const { lang } = useLang();
-  const [services, setServices] = useState<RoomItem[]>([]);
+  const [services, setServices] = useState<ServiceItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -100,10 +100,6 @@ export function ServicesSection() {
                       </div>
 
                       <div className="flex items-center gap-3">
-                        <span className="text-[14px] font-bold text-teal">
-                          {formatMNT(s.price)}
-                        </span>
-
                         <Link href="/booking" className="w-8 h-8 rounded-full bg-teal/8 hover:bg-teal flex items-center justify-center text-teal hover:text-white transition-colors no-underline">
                           <ArrowRight size={13} />
                         </Link>

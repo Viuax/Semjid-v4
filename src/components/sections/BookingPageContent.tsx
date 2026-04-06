@@ -6,17 +6,32 @@ import {
   UploadCloud, FileText, X, AlertCircle, Info, Users,
 } from "lucide-react";
 import { useLang } from "@/lib/lang-context";
-import { t, rooms, services, formatMNT, PHONE1, PHONE2 } from "@/lib/data";
+import { t, rooms, roomInstances, services, formatMNT, PHONE1, PHONE2 } from "@/lib/data";
 
 type Step = 1 | 2 | 3;
 type PayMethod = "qpay" | "card" | "bank" | "cash";
-type RoomInfo = { available: boolean; guests: number; bookingCount: number };
+type RoomInfo = { available: boolean; guests: number; bookingCount: number; blocked?: boolean; fullyBooked?: boolean; bedCapacity?: number; genderSummary?: Record<string, number>; guestDetails?: { gender: string; age?: string }[] };
+type GuestDetail = { gender: "male" | "female"; age: string };
+type BookingForm = {
+  fname: string;
+  lname: string;
+  phone: string;
+  email: string;
+  checkin: string;
+  checkout: string;
+  roomId: string;
+  svcIds: string[];
+  guests: string;
+  guestDetails: GuestDetail[];
+  notes: string;
+};
 
 export function BookingPageContent() {
   const { lang } = useLang();
   const [step, setStep] = useState<Step>(1);
   const [done, setDone] = useState(false);
   const [bookingRef, setBookingRef] = useState("");
+  const [specialCode, setSpecialCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [pay, setPay] = useState<PayMethod>("qpay");
@@ -36,18 +51,59 @@ export function BookingPageContent() {
   );
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<BookingForm>({
     fname: "", lname: "", phone: "", email: "",
     checkin: "", checkout: "", roomId: "",
-    svcIds: [] as string[], guests: "2", notes: "",
+    svcIds: [] as string[], guests: "2",
+    guestDetails: [{ gender: "male", age: "" }, { gender: "male", age: "" }],
+    notes: "",
   });
 
-  const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }));
+  const normalizeGuestDetails = (count: number, details: GuestDetail[]) => {
+    const guestCount = Math.max(1, count);
+    const next = [...details];
+    while (next.length < guestCount) next.push({ gender: "male", age: "" });
+    return next.slice(0, guestCount);
+  };
+
+  const set = (k: string, v: string) => setForm(f => {
+    const next = { ...f, [k]: v } as BookingForm;
+    if (k === "guests") {
+      const count = parseInt(v, 10) || 1;
+      next.guestDetails = normalizeGuestDetails(count, f.guestDetails);
+    }
+    return next;
+  });
+
+  const setGuestGender = (index: number, gender: "male" | "female") => {
+    // Check if this would create mixed genders
+    const currentGenders = form.guestDetails.map(g => g.gender);
+    currentGenders[index] = gender;
+    const hasMale = currentGenders.includes("male");
+    const hasFemale = currentGenders.includes("female");
+
+    if (hasMale && hasFemale) {
+      // Don't allow mixed genders
+      return;
+    }
+
+    setForm(f => ({
+      ...f,
+      guestDetails: f.guestDetails.map((g, i) => i === index ? { ...g, gender } : g),
+    }));
+  };
+
+  const setGuestAge = (index: number, age: string) => setForm(f => ({
+    ...f,
+    guestDetails: f.guestDetails.map((g, i) => i === index ? { ...g, age } : g),
+  }));
+
   const toggleSvc = (id: string) => setForm(f => ({
     ...f, svcIds: f.svcIds.includes(id) ? f.svcIds.filter(s => s !== id) : [...f.svcIds, id],
   }));
 
-  const selRoom = rooms.find(r => r.id === form.roomId);
+  const selRoom = roomInstances.find(r => r.id === form.roomId);
+  const selRoomCategory = selRoom ? rooms.find(r => r.id === selRoom.categoryId) : undefined;
   const nights = useMemo(() => {
     if (!form.checkin || !form.checkout) return 0;
     return Math.max(0, Math.round(
@@ -55,7 +111,7 @@ export function BookingPageContent() {
     ));
   }, [form.checkin, form.checkout]);
 
-  const roomPrice = (selRoom?.adult2 ?? selRoom?.adult1 ?? 0) * nights;
+  const roomPrice = (selRoomCategory?.adult1 ?? selRoomCategory?.adult2 ?? 0) * nights * form.guestDetails.length;
   const svcPrice = form.svcIds.reduce((s, id) => s + (services.find(sv => sv.id === id)?.price ?? 0), 0);
   const total = roomPrice + svcPrice;
 
@@ -78,7 +134,7 @@ export function BookingPageContent() {
 
   const checkAllRooms = useCallback((checkin: string, checkout: string) => {
     setRoomAvailability({});
-    rooms.forEach(r => checkRoomAvailability(r.id, checkin, checkout));
+    roomInstances.forEach(r => checkRoomAvailability(r.id, checkin, checkout));
   }, [checkRoomAvailability]);
   // ───────────────────────────────────────────────────────────────────────────
 
@@ -133,6 +189,7 @@ export function BookingPageContent() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed");
       setBookingRef(data.ref);
+      setSpecialCode(data.specialCode);
       setDone(true);
     } catch {
       setError(lang === "mn" ? "Захиалга илгээхэд алдаа гарлаа. Дахин оролдоно уу." : "Failed to submit. Please try again.");
@@ -151,6 +208,15 @@ export function BookingPageContent() {
         <p className="text-[13px] text-slate-400 mb-2">
           {lang === "mn" ? "Захиалгын дугаар:" : "Booking ref:"}{" "}
           <strong className="text-teal">{bookingRef}</strong>
+        </p>
+        {specialCode && (
+          <p className="text-[13px] text-slate-400 mb-2">
+            {lang === "mn" ? "Тусгай код:" : "Special code:"}{" "}
+            <strong className="text-teal text-lg">{specialCode}</strong>
+          </p>
+        )}
+        <p className="text-[13px] text-slate-400 mb-2">
+          {t.booking.specialCodeSent[lang]}
         </p>
         <p className="text-[13px] text-slate-400 mb-6">{PHONE1} / {PHONE2}</p>
         <button onClick={() => { setDone(false); setStep(1); }} className="text-[13px] text-teal border-b border-teal/30 cursor-pointer">
@@ -218,6 +284,45 @@ export function BookingPageContent() {
                   <select value={form.guests} onChange={e=>set("guests",e.target.value)} className={inp}>
                     {["1","2","3","4","5"].map(n=><option key={n}>{n}</option>)}
                   </select>
+                </div>
+                <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4">
+                  <h3 className="text-[12px] font-semibold text-slate-600 uppercase tracking-[0.18em] mb-3">{t.booking.guestInfo[lang]}</h3>
+                  <div className="space-y-3">
+                    {form.guestDetails.map((guest, index) => (
+                      <div key={index} className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
+                        <div>
+                          <label className={lbl}>{`${t.booking.guestN[lang]} ${index + 1}`}</label>
+                          <input value={`${index + 1}`} disabled className={inp + " bg-slate-100 cursor-not-allowed"} />
+                        </div>
+                        <div>
+                          <label className={lbl}>{t.booking.genderLabel[lang]}</label>
+                          <select value={guest.gender} onChange={e=>setGuestGender(index, e.target.value as "male" | "female")} className={inp}>
+                            <option value="male">{t.booking.male[lang]}</option>
+                            <option value="female">{t.booking.female[lang]}</option>
+                          </select>
+                          {(() => {
+                            const hasMale = form.guestDetails.some(g => g.gender === "male");
+                            const hasFemale = form.guestDetails.some(g => g.gender === "female");
+                            return hasMale && hasFemale ? (
+                              <p className="text-[10px] text-red-500 mt-1">{lang === "mn" ? "Эрэгтэй, эмэгтэй зэрэг байрлах боломжгүй" : "Mixed genders not allowed"}</p>
+                            ) : null;
+                          })()}
+                        </div>
+                        <div>
+                          <label className={lbl}>{t.booking.ageLabel[lang]}</label>
+                          <input
+                            type="number"
+                            min="1"
+                            max="120"
+                            value={guest.age}
+                            onChange={e=>setGuestAge(index, e.target.value)}
+                            placeholder="25"
+                            className={inp}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
 
@@ -338,69 +443,63 @@ export function BookingPageContent() {
                   </button>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {rooms.map(r => {
-                    const price = r.adult2 ?? r.adult1 ?? 0;
+                  {roomInstances.map(r => {
+                    const category = rooms.find(cat => cat.id === r.categoryId);
+                    const price = category?.adult1 ?? category?.adult2 ?? 0;
                     const sel = form.roomId === r.id;
-                    const roomInfo = roomAvailability[r.id] ?? { available: true, guests: 0, bookingCount: 0 };
-                    const isAvailable = roomInfo.available;
+                    const roomInfo = roomAvailability[r.id] ?? { available: true, guests: 0, bookingCount: 0, bedCapacity: r.beds || 1 };
                     const isChecking = checkingRoom === r.id;
                     const hasChecked = r.id in roomAvailability;
-                    const isUnavailable = hasChecked && !isAvailable;
+                    const isUnavailable = hasChecked && (!roomInfo.available || roomInfo.blocked || roomInfo.fullyBooked);
+                    const genderSummary = roomInfo.genderSummary;
+                    const guestDetails = roomInfo.guestDetails || [];
+                    const bedCapacity = roomInfo.bedCapacity || r.beds || 1;
+                    const summaryText = guestDetails.length > 0 ? guestDetails
+                      .map(guest => {
+                        const genderLabel = guest.gender === "male" ? t.booking.male[lang] : guest.gender === "female" ? t.booking.female[lang] : guest.gender;
+                        return guest.age ? `${genderLabel} (${guest.age})` : genderLabel;
+                      }).join(", ") : null;
 
                     return (
                       <div
                         key={r.id}
                         onClick={() => { if (isUnavailable) return; set("roomId", r.id); }}
-                        className={`border-2 rounded-xl overflow-hidden transition-all
-                          ${isUnavailable
-                            ? "border-red-200 opacity-70 cursor-not-allowed"
-                            : sel
-                            ? "border-teal shadow-lg shadow-teal/10 cursor-pointer"
-                            : "border-slate-100 hover:border-slate-200 cursor-pointer"
-                          }`}
+                        className={`border-2 rounded-xl overflow-hidden transition-all ${isUnavailable ? "border-red-200 opacity-70 cursor-not-allowed" : sel ? "border-teal shadow-lg shadow-teal/10 cursor-pointer" : "border-slate-100 hover:border-slate-200 cursor-pointer"}`}
                       >
-                        <div className="relative h-32 overflow-hidden">
-                          <Image src={r.img} alt={r.name[lang]} fill className="object-cover" />
-                          {sel && !isUnavailable && (
-                            <div className="absolute top-2 right-2 w-6 h-6 bg-teal rounded-full flex items-center justify-center">
-                              <Check size={12} className="text-white" />
-                            </div>
-                          )}
-                          {(isChecking || hasChecked) && (
-                            <div className={`absolute top-2 left-2 px-2 py-0.5 rounded-full text-[10px] font-semibold flex items-center gap-1
-                              ${isChecking ? "bg-white/90 text-slate-500"
-                                : isUnavailable ? "bg-red-500 text-white"
-                                : "bg-green-500 text-white"}`}
-                            >
-                              {isChecking
-                                ? <><Loader2 size={9} className="animate-spin" />{lang === "mn" ? "Шалгаж байна..." : "Checking..."}</>
-                                : isUnavailable
-                                ? <>{lang === "mn" ? "✗ Захиалагдсан" : "✗ Booked"}</>
-                                : <>{lang === "mn" ? "✓ Боломжтой" : "✓ Available"}</>
-                              }
-                            </div>
-                          )}
-                          {isUnavailable && <div className="absolute inset-0 bg-red-900/10" />}
-                        </div>
-                        <div className="p-3">
-                          <div className="text-[13px] font-medium text-slate-700">{r.name[lang]}</div>
-                          <div className="text-[12px] text-teal font-semibold mt-0.5">{formatMNT(price)}{t.rooms.night[lang]}</div>
-                          <div className="text-[10px] text-slate-400 mt-1">
-                            {lang==="mn"
-                              ?`0–2 нас: ${formatMNT(r.child02??0)} · 3–7 нас: ${formatMNT(r.child37a??r.child37b??0)} · 8–12 нас: ${formatMNT(r.child812a??r.child812b??0)}`
-                              :`0–2 yrs: ${formatMNT(r.child02??0)} · 3–7 yrs: ${formatMNT(r.child37a??r.child37b??0)} · 8–12 yrs: ${formatMNT(r.child812a??r.child812b??0)}`
-                            }
+                        <div className="relative h-28 overflow-hidden bg-slate-100">
+                          <div className="absolute inset-0 bg-slate-200/50" />
+                          <div className="absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-slate-900/80 to-transparent" />
+                          <div className="absolute left-3 top-3 rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-semibold text-slate-700 shadow-sm">
+                            #{r.number}
                           </div>
+                          <div className="absolute left-3 bottom-3 rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-semibold text-slate-700 shadow-sm">
+                            {r.type[lang]} · {r.beds ?? "—"} {lang === "mn" ? "ор" : "beds"}
+                          </div>
+                        </div>
+                        <div className="p-4">
+                          <div className="text-[13px] font-medium text-slate-700">{r.desc[lang]}</div>
+                          <div className="text-[12px] text-teal font-semibold mt-2">{formatMNT(price)} {lang === "mn" ? "хүн/шөнө" : "per person/night"}</div>
+                          {summaryText && (
+                            <div className="mt-3 rounded-full bg-slate-100 px-3 py-1 text-[11px] text-slate-700">
+                              {lang === "mn" ? "Одоогийн зочид:" : "Current guests:"} {summaryText}
+                            </div>
+                          )}
                           {hasChecked && !isChecking && (
-                            <div className={`mt-2 pt-2 border-t flex items-center gap-1.5 ${isUnavailable ? "border-red-100" : "border-slate-100"}`}>
+                            <div className={`mt-3 pt-3 border-t flex items-center gap-1.5 ${isUnavailable ? "border-red-100" : "border-slate-100"}`}>
                               <Users size={10} className={isUnavailable ? "text-red-400" : "text-green-500"} />
-                              {isUnavailable && roomInfo.guests > 0 ? (
+                              {roomInfo.fullyBooked ? (
                                 <span className="text-[10px] text-red-400">
-                                  {lang === "mn" ? `${roomInfo.guests} зочин байршиж байна` : `${roomInfo.guests} guest${roomInfo.guests > 1 ? "s" : ""} staying`}
+                                  {lang === "mn" ? `Дүүрэн захиалагдсан (${roomInfo.guests}/${bedCapacity})` : `Fully booked (${roomInfo.guests}/${bedCapacity})`}
                                 </span>
-                              ) : !isUnavailable ? (
-                                <span className="text-[10px] text-green-600">{lang === "mn" ? "Захиалах боломжтой" : "Ready to book"}</span>
-                              ) : null}
+                              ) : roomInfo.blocked ? (
+                                <span className="text-[10px] text-red-400">
+                                  {lang === "mn" ? "Хаалттай" : "Blocked"}
+                                </span>
+                              ) : (
+                                <span className="text-[10px] text-green-600">
+                                  {lang === "mn" ? `Захиалах боломжтой (${roomInfo.guests}/${bedCapacity})` : `Available (${roomInfo.guests}/${bedCapacity})`}
+                                </span>
+                              )}
                             </div>
                           )}
                         </div>
@@ -411,15 +510,25 @@ export function BookingPageContent() {
               </div>
 
               <div className="bg-white rounded-2xl p-6 shadow-sm">
-                <h2 className="font-serif text-xl text-slate-800 mb-5">{t.booking.addTreat[lang]}</h2>
+                <h2 className="font-serif text-xl text-slate-800 mb-3">{t.booking.addTreat[lang]}</h2>
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-5">
+                  <div className="flex items-start gap-2">
+                    <Info size={16} className="text-blue-500 shrink-0 mt-0.5" />
+                    <div className="text-[12px] text-blue-700 leading-relaxed">
+                      {lang === "mn" 
+                        ? "Өрөө захиалахад бүх эмчилгээний үйлчилгээ багтсан байдаг. Зочид ирсний дараа мэргэжлийн эмч нар шинжилгээ хийж, өвчний байдлаас хамааран тохирсон эмчилгээг үзүүлнэ."
+                        : "All treatment services are included with room booking. Upon arrival, specialized doctors will examine guests and provide appropriate treatments based on their medical condition."
+                      }
+                    </div>
+                  </div>
+                </div>
                 <div className="space-y-2">
                   {services.map(s => { const sel = form.svcIds.includes(s.id); return (
-                    <div key={s.id} onClick={()=>toggleSvc(s.id)} className={`flex items-center justify-between p-3.5 border rounded-lg cursor-pointer transition-all ${sel?"border-teal bg-teal/4":"border-slate-100 hover:border-slate-200"}`}>
+                    <div key={s.id} onClick={()=>toggleSvc(s.id)} className={`flex items-center p-3.5 border rounded-lg cursor-pointer transition-all ${sel?"border-teal bg-teal/4":"border-slate-100 hover:border-slate-200"}`}>
                       <div className="flex items-center gap-3">
                         <div className={`w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 ${sel?"border-teal bg-teal":"border-slate-200"}`}>{sel&&<Check size={11} className="text-white"/>}</div>
                         <div><div className="text-[13px] font-medium text-slate-700">{s.name[lang]}</div><div className="text-[11px] text-slate-400">{s.duration}</div></div>
                       </div>
-                      <span className="text-[13px] font-semibold text-teal shrink-0">{formatMNT(s.price)}</span>
                     </div>
                   ); })}
                 </div>
@@ -490,8 +599,19 @@ export function BookingPageContent() {
         <div>
           <div className="bg-white rounded-2xl p-5 shadow-sm sticky top-32">
             <h3 className="font-serif text-[17px] text-slate-800 mb-4">{t.booking.summary[lang]}</h3>
-            {selRoom?(<><div className="relative h-28 rounded-lg overflow-hidden mb-3"><Image src={selRoom.img} alt={selRoom.name[lang]} fill className="object-cover"/></div><div className="flex justify-between mb-1"><span className="text-[13px] text-slate-500">{selRoom.name[lang]}</span><span className="text-[13px] font-medium text-slate-700">{formatMNT(selRoom.adult2??selRoom.adult1??0)} ×{nights}</span></div></>):<p className="text-[13px] text-slate-300 mb-3">{t.booking.noRoom[lang]}</p>}
-            {form.svcIds.length>0&&(<div className="border-t border-slate-100 pt-3 space-y-1.5 mt-2">{form.svcIds.map(id=>{const s=services.find(sv=>sv.id===id);return s?<div key={id} className="flex justify-between"><span className="text-[12px] text-slate-400">{s.name[lang]}</span><span className="text-[12px] text-slate-600">{formatMNT(s.price)}</span></div>:null;})}</div>)}
+            {selRoom && selRoomCategory ? (<><div className="relative h-28 rounded-lg overflow-hidden mb-3"><Image src={selRoomCategory.img} alt={`${selRoom.type[lang]} ${selRoom.number}`} fill className="object-cover"/></div><div className="flex justify-between mb-1"><span className="text-[13px] text-slate-500">{`${selRoom.type[lang]} ${selRoom.number}`}</span><span className="text-[13px] font-medium text-slate-700">{formatMNT(selRoomCategory.adult1 ?? selRoomCategory.adult2 ?? 0)} × {form.guestDetails.length} × {nights} = {formatMNT(roomPrice)}</span></div></>) : <p className="text-[13px] text-slate-300 mb-3">{t.booking.noRoom[lang]}</p>}
+            {form.svcIds.length>0&&(<div className="border-t border-slate-100 pt-3 space-y-1.5 mt-2">{form.svcIds.map(id=>{const s=services.find(sv=>sv.id===id);return s?<div key={id} className="flex items-center"><span className="text-[12px] text-slate-400">{s.name[lang]}</span></div>:null;})}</div>)}
+            <div className="mt-3 pt-3 border-t border-slate-100">
+              <div className="text-[13px] text-slate-500 mb-2">{t.booking.guestInfo[lang]}</div>
+              <div className="space-y-1">
+                {form.guestDetails.map((guest, index) => (
+                  <div key={index} className="flex items-center justify-between text-[12px] text-slate-600">
+                    <span>{`${t.booking.guestN[lang]} ${index + 1}`}</span>
+                    <span>{guest.gender === "male" ? t.booking.male[lang] : t.booking.female[lang]}{guest.age ? `, ${guest.age}` : ""}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
             <div className="border-t border-slate-100 mt-3 pt-3 flex justify-between items-center">
               <span className="text-[13px] text-slate-500">{t.booking.total[lang]}</span>
               <span className="font-serif text-xl text-teal">{formatMNT(total)}</span>

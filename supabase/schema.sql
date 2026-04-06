@@ -22,8 +22,11 @@ create table bookings (
   check_in    date not null,
   check_out   date not null,
   guests      integer not null default 1,
+  guest_details jsonb default '[]'::jsonb,
   treatments  text[] default '{}',
   notes       text,
+  ilgeeh_bichig_url text,
+  special_code text,
   payment     text not null default 'cash',
   total       integer default 0,
   status      text not null default 'pending'
