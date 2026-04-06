@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
+import { TrendingUp } from "lucide-react";
 import {
   LayoutDashboard, Calendar, Users, BedDouble,
   MessageSquare, LogOut, Menu, X, Bell
@@ -10,6 +11,7 @@ import {
 import Image from "next/image";
 
 const navItems = [
+  { href: "/admin/analytics", icon: TrendingUp, label: "Аналитик" },
   { href: "/admin",         icon: LayoutDashboard, label: "Хяналтын самбар" },
   { href: "/admin/calendar", icon: Calendar,        label: "Захиалгын календар" },
   { href: "/admin/guests",   icon: Users,           label: "Зочид" },

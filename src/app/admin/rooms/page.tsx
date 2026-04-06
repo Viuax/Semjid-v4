@@ -1,12 +1,13 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
 import { supabaseAdmin } from "@/lib/supabase";
-import { rooms } from "@/lib/data";
+import { roomInstances } from "@/lib/data";
 import { BedDouble, ChevronLeft, ChevronRight, CheckCircle, Lock, Plus, X, Loader2 } from "lucide-react";
 
 type Booking = {
   id: string; ref: string; fname: string; lname: string;
   check_in: string; check_out: string; room_id: string; status: string;
+  guest_details?: { gender: string; age?: string }[];
 };
 
 type Block = {
@@ -42,6 +43,11 @@ export default function RoomsPage() {
   const today = new Date();
   const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,"0")}-${String(today.getDate()).padStart(2,"0")}`;
 
+  const getBookingsForDay = (roomId: string, day: number) => {
+    const d = `${year}-${String(month+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
+    return bookings.filter(b => b.room_id === roomId && b.check_in <= d && b.check_out > d);
+  };
+
   const getBookingForDay = (roomId: string, day: number) => {
     const d = `${year}-${String(month+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
     return bookings.find(b => b.room_id === roomId && b.check_in <= d && b.check_out > d);
@@ -52,7 +58,7 @@ export default function RoomsPage() {
     return blocks.find(b => b.room_id === roomId && b.from_date <= d && b.to_date >= d);
   };
 
-  const occupiedToday = rooms.filter(r =>
+  const occupiedToday = roomInstances.filter(r =>
     bookings.some(b => b.room_id === r.id && b.check_in <= todayStr && b.check_out > todayStr) ||
     blocks.some(b => b.room_id === r.id && b.from_date <= todayStr && b.to_date >= todayStr)
   ).length;
@@ -104,9 +110,9 @@ export default function RoomsPage() {
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4">
         {[
-          { label: "Нийт өрөө төрөл", value: rooms.length, color: "text-slate-700", bg: "bg-slate-100" },
+          { label: "Нийт өрөө", value: roomInstances.length, color: "text-slate-700", bg: "bg-slate-100" },
           { label: "Өнөөдөр эзэлсэн", value: occupiedToday, color: "text-red-600", bg: "bg-red-50" },
-          { label: "Өнөөдөр чөлөөтэй", value: rooms.length - occupiedToday, color: "text-emerald-600", bg: "bg-emerald-50" },
+          { label: "Өнөөдөр чөлөөтэй", value: roomInstances.length - occupiedToday, color: "text-emerald-600", bg: "bg-emerald-50" },
         ].map(({ label, value, color, bg }) => (
           <div key={label} className={`${bg} rounded-2xl p-5`}>
             <div className={`text-3xl font-bold ${color}`}>{value}</div>
@@ -121,13 +127,13 @@ export default function RoomsPage() {
           <h2 className="font-semibold text-slate-800 mb-4 flex items-center gap-2"><Lock size={15} className="text-red-400"/> Гараар хаасан өрөөнүүд</h2>
           <div className="space-y-2">
             {blocks.map(b => {
-              const room = rooms.find(r => r.id === b.room_id);
+              const room = roomInstances.find(r => r.id === b.room_id);
               return (
                 <div key={b.id} className="flex items-center justify-between p-3 bg-red-50 border border-red-100 rounded-xl">
                   <div className="flex items-center gap-3">
                     <Lock size={14} className="text-red-400 shrink-0"/>
                     <div>
-                      <span className="text-[13px] font-medium text-slate-700">{room?.name.mn || b.room_id}</span>
+                      <span className="text-[13px] font-medium text-slate-700">{room?.number ? `${room.type.mn} ${room.number}` : b.room_id}</span>
                       <span className="text-[12px] text-slate-400 ml-2">{b.from_date} → {b.to_date}</span>
                       {b.reason && <span className="text-[11px] text-red-400 ml-2">· {b.reason}</span>}
                     </div>
@@ -168,26 +174,45 @@ export default function RoomsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
-              {rooms.map(room => (
+              {roomInstances.map(room => (
                 <tr key={room.id} className="hover:bg-slate-50/50 transition-colors">
                   <td className="sticky left-0 bg-white px-4 py-3">
                     <div className="flex items-center gap-2">
                       <BedDouble size={15} className="text-slate-400"/>
-                      <div className="text-[12px] font-medium text-slate-700">{room.name.mn}</div>
+                      <div>
+                        <div className="text-[12px] font-medium text-slate-700">{room.number}</div>
+                        <div className="text-[11px] text-slate-400">{room.type.mn} · {room.beds ?? "—"} {room.beds ? "ор" : ""}</div>
+                      </div>
                     </div>
                   </td>
                   {days.map(d => {
-                    const booking = getBookingForDay(room.id, d);
+                    const dayBookings = getBookingsForDay(room.id, d);
                     const block = getBlockForDay(room.id, d);
                     const isToday = d===today.getDate() && month===today.getMonth() && year===today.getFullYear();
+                    const totalGuests = dayBookings.reduce((sum, b) => sum + (b.guest_details?.length || 0), 0);
+                    const bedCapacity = room.beds || 1;
+                    const isFullyBooked = totalGuests >= bedCapacity;
+                    const booking = dayBookings[0]; // Show first booking for tooltip
+                    const guestDetails = booking?.guest_details || [];
+                    const genderTooltip = guestDetails.length > 0 ? guestDetails
+                      .map(guest => {
+                        const gender = guest.gender === "male" ? "M" : guest.gender === "female" ? "F" : guest.gender;
+                        return guest.age ? `${gender}(${guest.age})` : gender;
+                      }).join(", ") : "";
                     return (
                       <td key={d} className={`px-1 py-2 text-center ${isToday?"bg-teal/5":""}`}>
                         {block ? (
                           <div title={block.reason} className="w-6 h-6 rounded-full mx-auto bg-red-400 flex items-center justify-center cursor-help">
                             <Lock size={9} className="text-white"/>
                           </div>
+                        ) : isFullyBooked ? (
+                          <div title={`Fully booked (${totalGuests}/${bedCapacity})${genderTooltip ? ` · ${genderTooltip}` : ""}`}
+                            className="w-6 h-6 rounded-full mx-auto bg-red-500 flex items-center justify-center cursor-help">
+                            <span className="text-white text-[8px] font-bold">F</span>
+                          </div>
                         ) : booking ? (
-                          <div title={`${booking.fname} ${booking.lname} (${booking.ref})`}
+                          <div
+                            title={`${booking.fname} ${booking.lname} (${booking.ref})${genderTooltip ? ` · ${genderTooltip}` : ""}`}
                             className={`w-6 h-6 rounded-full mx-auto flex items-center justify-center cursor-help ${booking.status==="confirmed"?"bg-emerald-500":"bg-amber-400"}`}>
                             <span className="text-white text-[8px] font-bold">{booking.fname[0]}</span>
                           </div>
@@ -208,6 +233,7 @@ export default function RoomsPage() {
         <div className="px-6 py-4 border-t border-slate-100 flex items-center gap-6 flex-wrap">
           <div className="flex items-center gap-2"><div className="w-4 h-4 rounded-full bg-emerald-500"/><span className="text-[12px] text-slate-500">Баталгаажсан</span></div>
           <div className="flex items-center gap-2"><div className="w-4 h-4 rounded-full bg-amber-400"/><span className="text-[12px] text-slate-500">Хүлээгдэж буй</span></div>
+          <div className="flex items-center gap-2"><div className="w-4 h-4 rounded-full bg-red-500"/><span className="text-[12px] text-slate-500">Дүүрэн захиалагдсан</span></div>
           <div className="flex items-center gap-2"><div className="w-4 h-4 rounded-full bg-red-400"/><span className="text-[12px] text-slate-500">Хаалттай</span></div>
           <div className="flex items-center gap-2"><div className="w-4 h-4 rounded-full bg-slate-100"/><span className="text-[12px] text-slate-500">Чөлөөтэй</span></div>
         </div>
@@ -226,7 +252,7 @@ export default function RoomsPage() {
                 <label className={lbl}>Өрөө сонгох</label>
                 <select value={blockForm.room_id} onChange={e => setBlockForm(f => ({...f, room_id: e.target.value}))} className={inp}>
                   <option value="">-- Өрөө сонгох --</option>
-                  {rooms.map(r => <option key={r.id} value={r.id}>{r.name.mn}</option>)}
+                  {roomInstances.map(r => <option key={r.id} value={r.id}>{`${r.type.mn} ${r.number}`}</option>)}
                 </select>
               </div>
               <div className="grid grid-cols-2 gap-3">

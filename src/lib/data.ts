@@ -15,7 +15,7 @@ export function formatMNT(n: number): string {
 export const t = {
   nav: {
     home:     { mn: "Нүүр",         en: "Home" },
-    about:    { mn: "Бидний тухай", en: "About Us" }, 
+    about:    { mn: "Бидний тухай", en: "About Us" },
     rooms:    { mn: "Байр, өрөө",   en: "Rooms" },
     services: { mn: "Эмчилгээ",     en: "Treatments" },
     booking:  { mn: "Захиалга",     en: "Book Now" },
@@ -88,6 +88,15 @@ export const t = {
     checkin:  { mn: "Ирэх өдөр",        en: "Check-in"           },
     checkout: { mn: "Явах өдөр",        en: "Check-out"          },
     numGuests:{ mn: "Хүний тоо",        en: "Guests"             },
+    guestInfo:    { mn: "Зочдын мэдээлэл",  en: "Guest Details"      },
+    addGuest:     { mn: "+ Зочин нэмэх",    en: "+ Add Guest"        },
+    removeGuest:  { mn: "Хасах",            en: "Remove"             },
+    guestN:       { mn: "зочин",            en: "Guest"              },
+    genderLabel:  { mn: "Хүйс",            en: "Gender"             },
+    male:         { mn: "Эрэгтэй",          en: "Male"               },
+    female:       { mn: "Эмэгтэй",          en: "Female"             },
+    ageLabel:     { mn: "Нас (заавал биш)", en: "Age (optional)"     },
+    genderWarning:{ mn: "Энэ өрөөнд одоогоор байршиж буй зочдын хүйс:", en: "Current guests in this room:" },
     addTreat: { mn: "Эмчилгээ нэмэх (заавал биш)", en: "Add Treatments (optional)" },
     notes:    { mn: "Тэмдэглэл, хүсэлт", en: "Notes & Requests" },
     total:    { mn: "Нийт дүн",          en: "Total"             },
@@ -105,6 +114,7 @@ export const t = {
     next:     { mn: "Үргэлжлүүлэх →",  en: "Continue →"         },
     back:     { mn: "← Буцах",          en: "← Back"             },
     success:  { mn: "Захиалга амжилттай хүлээн авлаа! Бид удахгүй холбоо барина.", en: "Booking received! We will contact you shortly." },
+    specialCodeSent: { mn: "Таны утсанд тусгай код илгээгдлээ.", en: "Special code sent to your phone." },
     summary:  { mn: "Захиалгын дэлгэрэнгүй", en: "Booking Summary" },
     noRoom:   { mn: "Өрөө сонгогдоогүй",     en: "No room selected" },
     childInfo:{ mn: "Хүүхдийн үнэ: 0–2 нас 43,000₮ · 3–7 нас 53,000₮ · 8–12 нас 68,000₮", en: "Child rates: 0–2 yrs 43,000₮ · 3–7 yrs 53,000₮ · 8–12 yrs 68,000₮" },
@@ -221,6 +231,20 @@ export const rooms: RoomItem[] = [
     capacity:2, totalRooms:6, adult1:null, adult2:93000, child02:43000,
     child37a:null, child37b:null, child812a:null, child812b:68000,
     amenities:[{mn:"Хувийн угаалгын өрөө",en:"Private bathroom"},{mn:"Халуун, хүйтэн ус",en:"Hot & cold water"},{mn:"Олон сувгийн TV",en:"Multi-channel TV"},{mn:"Үнэгүй Wi-Fi",en:"Free Wi-Fi"}] },
+  { id:"superlux", img:"/images/image4.jpeg",
+    type:{ mn:"Супер Люкс", en:"Super Lux" },
+    name:{ mn:"Супер Люкс өрөө", en:"Super Lux Room" },
+    desc:{ mn:"Их хэмжээний тав тухтай супер люкс өрөө.", en:"Spacious and premium Super Lux accommodation." },
+    capacity:2, totalRooms:1, adult1:null, adult2:135000, child02:43000,
+    child37a:null, child37b:null, child812a:null, child812b:68000,
+    amenities:[{mn:"Хувийн угаалгын өрөө",en:"Private bathroom"},{mn:"Халуун, хүйтэн ус",en:"Hot & cold water"},{mn:"Олон сувгийн TV",en:"Multi-channel TV"},{mn:"Үнэгүй Wi-Fi",en:"Free Wi-Fi"}] },
+  { id:"fullux", img:"/images/image3.jpeg",
+    type:{ mn:"Фулл Люкс", en:"Full Lux" },
+    name:{ mn:"Фулл Люкс өрөө", en:"Full Lux Room" },
+    desc:{ mn:"Их хэмжээний бүрэн люкс өрөө.", en:"Fully appointed Full Lux accommodation." },
+    capacity:2, totalRooms:2, adult1:null, adult2:150000, child02:43000,
+    child37a:null, child37b:null, child812a:null, child812b:68000,
+    amenities:[{mn:"Хувийн угаалгын өрөө",en:"Private bathroom"},{mn:"Халуун, хүйтэн ус",en:"Hot & cold water"},{mn:"Олон сувгийн TV",en:"Multi-channel TV"},{mn:"Үнэгүй Wi-Fi",en:"Free Wi-Fi"}] },
   { id:"std2", img:"/images/image5.jpeg",
     type:{ mn:"Стандарт өрөө", en:"Standard Room" },
     name:{ mn:"2 Ортой Стандарт өрөө", en:"2-Bed Standard Room" },
@@ -249,6 +273,57 @@ export const rooms: RoomItem[] = [
     capacity:3, totalRooms:0, adult1:78000, adult2:null, child02:43000,
     child37a:53000, child37b:null, child812a:68000, child812b:null,
     amenities:[{mn:"Зуны улиралд нээлттэй",en:"Open June–September"},{mn:"Байгалийн орчин",en:"Natural surroundings"}] },
+];
+
+export interface RoomInstance {
+  id: string;
+  number: string;
+  beds: number | null;
+  type: { mn: string; en: string };
+  categoryId: string;
+  desc: { mn: string; en: string };
+}
+
+export const roomInstances: RoomInstance[] = [
+  { id: "101", number: "101", beds: 2, type: { mn: "Стандарт", en: "Standard" }, categoryId: "std2", desc: { mn: "2 ортой стандарт өрөө", en: "2-Bed Standard" } },
+  { id: "102", number: "102", beds: 2, type: { mn: "Стандарт", en: "Standard" }, categoryId: "std2", desc: { mn: "2 ортой стандарт өрөө", en: "2-Bed Standard" } },
+  { id: "103", number: "103", beds: 5, type: { mn: "Стандарт", en: "Standard" }, categoryId: "std5", desc: { mn: "5 ортой стандарт өрөө", en: "5-Bed Standard" } },
+  { id: "104", number: "104", beds: 5, type: { mn: "Стандарт", en: "Standard" }, categoryId: "std5", desc: { mn: "5 ортой стандарт өрөө", en: "5-Bed Standard" } },
+  { id: "105", number: "105", beds: 2, type: { mn: "Стандарт", en: "Standard" }, categoryId: "std2", desc: { mn: "2 ортой стандарт өрөө", en: "2-Bed Standard" } },
+  { id: "106", number: "106", beds: 2, type: { mn: "Стандарт", en: "Standard" }, categoryId: "std2", desc: { mn: "2 ортой стандарт өрөө", en: "2-Bed Standard" } },
+  { id: "107", number: "107", beds: 2, type: { mn: "Стандарт", en: "Standard" }, categoryId: "std2", desc: { mn: "2 ортой стандарт өрөө", en: "2-Bed Standard" } },
+  { id: "108", number: "108", beds: 2, type: { mn: "Стандарт", en: "Standard" }, categoryId: "std2", desc: { mn: "2 ортой стандарт өрөө", en: "2-Bed Standard" } },
+  { id: "109", number: "109", beds: 2, type: { mn: "Стандарт", en: "Standard" }, categoryId: "std2", desc: { mn: "2 ортой стандарт өрөө", en: "2-Bed Standard" } },
+  { id: "110", number: "110", beds: 2, type: { mn: "Стандарт", en: "Standard" }, categoryId: "std2", desc: { mn: "2 ортой стандарт өрөө", en: "2-Bed Standard" } },
+  { id: "111", number: "111", beds: 2, type: { mn: "Стандарт", en: "Standard" }, categoryId: "std2", desc: { mn: "2 ортой стандарт өрөө", en: "2-Bed Standard" } },
+  { id: "112", number: "112", beds: 2, type: { mn: "Стандарт", en: "Standard" }, categoryId: "std2", desc: { mn: "2 ортой стандарт өрөө", en: "2-Bed Standard" } },
+  { id: "113", number: "113", beds: 2, type: { mn: "Стандарт", en: "Standard" }, categoryId: "std2", desc: { mn: "2 ортой стандарт өрөө", en: "2-Bed Standard" } },
+  { id: "115", number: "115", beds: 2, type: { mn: "Стандарт", en: "Standard" }, categoryId: "std2", desc: { mn: "2 ортой стандарт өрөө", en: "2-Bed Standard" } },
+  { id: "116", number: "116", beds: 2, type: { mn: "Стандарт", en: "Standard" }, categoryId: "std2", desc: { mn: "2 ортой стандарт өрөө", en: "2-Bed Standard" } },
+  { id: "117", number: "117", beds: 4, type: { mn: "Стандарт", en: "Standard" }, categoryId: "std4", desc: { mn: "4 ортой стандарт өрөө", en: "4-Bed Standard" } },
+  { id: "118", number: "118", beds: 4, type: { mn: "Стандарт", en: "Standard" }, categoryId: "std4", desc: { mn: "4 ортой стандарт өрөө", en: "4-Bed Standard" } },
+  { id: "119", number: "119", beds: 4, type: { mn: "Стандарт", en: "Standard" }, categoryId: "std4", desc: { mn: "4 ортой стандарт өрөө", en: "4-Bed Standard" } },
+  { id: "120", number: "120", beds: 4, type: { mn: "Стандарт", en: "Standard" }, categoryId: "std4", desc: { mn: "4 ортой стандарт өрөө", en: "4-Bed Standard" } },
+  { id: "121", number: "121", beds: 4, type: { mn: "Стандарт", en: "Standard" }, categoryId: "std4", desc: { mn: "4 ортой стандарт өрөө", en: "4-Bed Standard" } },
+  { id: "122", number: "122", beds: 4, type: { mn: "Стандарт", en: "Standard" }, categoryId: "std4", desc: { mn: "4 ортой стандарт өрөө", en: "4-Bed Standard" } },
+  { id: "123", number: "123", beds: 4, type: { mn: "Стандарт", en: "Standard" }, categoryId: "std4", desc: { mn: "4 ортой стандарт өрөө", en: "4-Bed Standard" } },
+  { id: "124", number: "124", beds: 4, type: { mn: "Стандарт", en: "Standard" }, categoryId: "std4", desc: { mn: "4 ортой стандарт өрөө", en: "4-Bed Standard" } },
+  { id: "125", number: "125", beds: 2, type: { mn: "Стандарт", en: "Standard" }, categoryId: "std2", desc: { mn: "2 ортой стандарт өрөө", en: "2-Bed Standard" } },
+  { id: "126", number: "126", beds: 2, type: { mn: "Стандарт", en: "Standard" }, categoryId: "std2", desc: { mn: "2 ортой стандарт өрөө", en: "2-Bed Standard" } },
+  { id: "129", number: "129", beds: 4, type: { mn: "Стандарт", en: "Standard" }, categoryId: "std4", desc: { mn: "4 ортой стандарт өрөө", en: "4-Bed Standard" } },
+  { id: "130", number: "130", beds: 2, type: { mn: "Стандарт", en: "Standard" }, categoryId: "std2", desc: { mn: "2 ортой стандарт өрөө", en: "2-Bed Standard" } },
+  { id: "131", number: "131", beds: 4, type: { mn: "Стандарт", en: "Standard" }, categoryId: "std4", desc: { mn: "4 ортой стандарт өрөө", en: "4-Bed Standard" } },
+  { id: "201", number: "201", beds: null, type: { mn: "Супер Люкс", en: "Super Lux" }, categoryId: "superlux", desc: { mn: "Супер люкс өрөө", en: "Super Lux Room" } },
+  { id: "202", number: "202", beds: 4, type: { mn: "Стандарт", en: "Standard" }, categoryId: "std4", desc: { mn: "4 ортой стандарт өрөө", en: "4-Bed Standard" } },
+  { id: "203", number: "203", beds: null, type: { mn: "Фулл Люкс", en: "Full Lux" }, categoryId: "fullux", desc: { mn: "Фулл люкс өрөө", en: "Full Lux Room" } },
+  { id: "204", number: "204", beds: 4, type: { mn: "Стандарт", en: "Standard" }, categoryId: "std4", desc: { mn: "4 ортой стандарт өрөө", en: "4-Bed Standard" } },
+  { id: "206", number: "206", beds: 4, type: { mn: "Стандарт", en: "Standard" }, categoryId: "std4", desc: { mn: "4 ортой стандарт өрөө", en: "4-Bed Standard" } },
+  { id: "207", number: "207", beds: null, type: { mn: "Фулл Люкс", en: "Full Lux" }, categoryId: "fullux", desc: { mn: "Фулл люкс өрөө", en: "Full Lux Room" } },
+  { id: "209", number: "209", beds: 2, type: { mn: "Стандарт", en: "Standard" }, categoryId: "std2", desc: { mn: "2 ортой стандарт өрөө", en: "2-Bed Standard" } },
+  { id: "210", number: "210", beds: 4, type: { mn: "Стандарт", en: "Standard" }, categoryId: "std4", desc: { mn: "4 ортой стандарт өрөө", en: "4-Bed Standard" } },
+  { id: "211", number: "211", beds: 2, type: { mn: "Стандарт", en: "Standard" }, categoryId: "std2", desc: { mn: "2 ортой стандарт өрөө", en: "2-Bed Standard" } },
+  { id: "212", number: "212", beds: 4, type: { mn: "Стандарт", en: "Standard" }, categoryId: "std4", desc: { mn: "4 ортой стандарт өрөө", en: "4-Bed Standard" } },
+  { id: "213", number: "213", beds: 2, type: { mn: "Стандарт", en: "Standard" }, categoryId: "std2", desc: { mn: "2 ортой стандарт өрөө", en: "2-Bed Standard" } },
 ];
 
 // ── Conditions ─────────────────────────────────────────────────
