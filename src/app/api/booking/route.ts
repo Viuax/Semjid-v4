@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { rooms, roomInstances, services } from "@/lib/data";
 
-const ADMIN_EMAIL = "otgonbatzolboo@gmail.com";
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL ?? "";
 
 export async function POST(req: NextRequest) {
   try {
@@ -19,8 +19,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
+    // Validate date format and logical order
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (!dateRegex.test(checkin) || !dateRegex.test(checkout)) {
+      return NextResponse.json({ error: "Invalid date format" }, { status: 400 });
+    }
+    const checkinDate = new Date(checkin);
+    const checkoutDate = new Date(checkout);
+    if (isNaN(checkinDate.getTime()) || isNaN(checkoutDate.getTime()) || checkoutDate <= checkinDate) {
+      return NextResponse.json({ error: "Checkout must be after checkin" }, { status: 400 });
+    }
+
     // Calculate expected total for validation
-    const nights = Math.max(0, Math.round((new Date(checkout).getTime() - new Date(checkin).getTime()) / 86400000));
+    const nights = Math.max(0, Math.round((checkoutDate.getTime() - checkinDate.getTime()) / 86400000));
     const roomInstance = roomInstances.find(r => r.id === roomId);
     const roomCategory = roomInstance ? rooms.find(r => r.id === roomInstance.categoryId) : null;
     const roomRate = roomCategory?.adult1 ?? roomCategory?.adult2 ?? 0;
@@ -72,8 +83,8 @@ export async function POST(req: NextRequest) {
     // Generate special code for client verification
     const specialCode = generateSpecialCode();
 
-    // Save to Supabase - try with new columns first, fallback without
-    let insertData: any = {
+    // Save to Supabase
+    let insertData: Record<string, unknown> = {
       ref,
       fname, lname, phone, email,
       check_in: checkin,
@@ -179,13 +190,9 @@ async function sendAdminEmail(b: {
 }
 
 function generateSpecialCode(): string {
-  // Generate a 6-character alphanumeric code
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  let code = '';
-  for (let i = 0; i < 6; i++) {
-    code += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return code;
+  const bytes = crypto.getRandomValues(new Uint8Array(6));
+  return Array.from(bytes).map(b => chars[b % chars.length]).join('');
 }
 
 async function sendSpecialCodeSMS(phone: string, specialCode: string, ref: string) {
@@ -201,7 +208,7 @@ async function sendSpecialCodeSMS(phone: string, specialCode: string, ref: strin
 
   try {
     // Try different API formats based on provider
-    let requestBody: any = {
+    let requestBody: Record<string, string> = {
       to: phone,
       message: message,
     };

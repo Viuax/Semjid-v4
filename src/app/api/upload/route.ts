@@ -1,14 +1,16 @@
-// debug v2
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 
+const ALLOWED_TYPES: Record<string, string> = {
+  "application/pdf": "pdf",
+  "image/jpeg": "jpg",
+  "image/jpg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+};
+
 export async function POST(req: NextRequest) {
   try {
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const svc = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    console.log("Supabase URL:", url ? url.slice(0, 30) + "..." : "MISSING");
-    console.log("Service key:", svc ? svc.slice(0, 10) + "..." : "MISSING");
-
     const formData = await req.formData();
     const file = formData.get("file") as File | null;
 
@@ -16,10 +18,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
 
-    console.log("File:", file.name, file.type, file.size);
-
-    const allowed = ["application/pdf", "image/jpeg", "image/png", "image/jpg", "image/webp"];
-    if (!allowed.includes(file.type)) {
+    if (!ALLOWED_TYPES[file.type]) {
       return NextResponse.json({ error: "Only PDF or image files are allowed" }, { status: 400 });
     }
 
@@ -27,26 +26,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "File must be under 10MB" }, { status: 400 });
     }
 
-    const ext = file.name.split(".").pop() ?? "pdf";
+    // Use content-type derived extension, not user-supplied filename
+    const ext = ALLOWED_TYPES[file.type];
     const fileName = `ilgeeh-${Date.now()}.${ext}`;
     const arrayBuffer = await file.arrayBuffer();
     const buffer = new Uint8Array(arrayBuffer);
 
-    console.log("Uploading to bucket: ilgeeh-bichig, file:", fileName);
-
-    const { data, error: uploadError } = await supabaseAdmin.storage
+    const { error: uploadError } = await supabaseAdmin.storage
       .from("ilgeeh-bichig")
       .upload(fileName, buffer, { contentType: file.type, upsert: true });
 
     if (uploadError) {
-      console.error("Upload error details:", JSON.stringify(uploadError));
-      return NextResponse.json({
-        error: uploadError.message,
-        details: JSON.stringify(uploadError)
-      }, { status: 500 });
+      return NextResponse.json({ error: uploadError.message }, { status: 500 });
     }
-
-    console.log("Upload success:", data);
 
     const { data: urlData } = supabaseAdmin.storage
       .from("ilgeeh-bichig")
@@ -54,7 +46,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ url: urlData.publicUrl, fileName });
   } catch (err) {
-    console.error("Caught error:", err);
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    console.error("Upload error:", err);
+    return NextResponse.json({ error: "Upload failed" }, { status: 500 });
   }
 }
