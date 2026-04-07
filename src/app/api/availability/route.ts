@@ -1,11 +1,6 @@
-import { createClient } from "@supabase/supabase-js";
 import { NextRequest, NextResponse } from "next/server";
+import { supabaseAdmin as supabase } from "@/lib/supabase";
 import { roomInstances } from "@/lib/data";
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -16,9 +11,21 @@ export async function GET(req: NextRequest) {
   if (!roomId || !checkin || !checkout)
     return NextResponse.json({ available: true, guests: 0, bookingCount: 0 });
 
+  // Validate date format (YYYY-MM-DD)
+  const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+  if (!dateRegex.test(checkin) || !dateRegex.test(checkout)) {
+    return NextResponse.json({ error: "Invalid date format" }, { status: 400 });
+  }
+
+  const checkinDate = new Date(checkin);
+  const checkoutDate = new Date(checkout);
+  if (isNaN(checkinDate.getTime()) || isNaN(checkoutDate.getTime()) || checkoutDate <= checkinDate) {
+    return NextResponse.json({ error: "Invalid date range" }, { status: 400 });
+  }
+
   // Get room instance details
   const roomInstance = roomInstances.find(r => r.id === roomId);
-  const bedCapacity = roomInstance?.beds || 1; // Default to 1 if not found
+  const bedCapacity = roomInstance?.beds || 1;
 
   const [{ data: bookings, error }, { data: blocks, error: blockError }] = await Promise.all([
     supabase

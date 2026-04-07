@@ -10,13 +10,8 @@
  *   const services = await getDynamicServices();
  */
 
-import { createClient } from "@supabase/supabase-js";
+import { supabase } from "./supabase";
 import { rooms as staticRooms, services as staticServices, type RoomItem, type ServiceItem } from "./data";
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
 
 // Maps Supabase room ID → static room ID
 // Adjust these if your IDs differ
