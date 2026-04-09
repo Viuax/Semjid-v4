@@ -26,7 +26,7 @@ export function ReviewForm({ roomId }: { roomId?: string }) {
         body: JSON.stringify({
           room_id: roomId || 'general',
           fname: name.trim(),
-          rating: parseInt(rating),
+         rating: String(parseInt(rating)),
           comment: comment.trim(),
         }),
       });
