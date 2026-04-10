@@ -38,7 +38,7 @@ export default function SettingsPage() {
       }
     } catch (err) {
       console.error("Failed to load settings:", err);
-      setMessage({ type: "error", text: "Тохиргоо ачаалах бүтэлгүүтэй болсон" });
+      setMessage({ type: "error", text: "Тохиргоо ачаалах үед алдаа гарлаа" });
     } finally {
       setLoading(false);
     }
@@ -96,7 +96,7 @@ export default function SettingsPage() {
       setMessage({ type: "success", text: "Илгээх бичиг амжилттай байршуулагдлаа ✓" });
     } catch (err) {
       console.error("Upload error:", err);
-      setMessage({ type: "error", text: err instanceof Error ? err.message : "Upload бүтэлгүүтэй болсон" });
+      setMessage({ type: "error", text: err instanceof Error ? err.message : "Файл байршуулах үед алдаа гарлаа" });
     } finally {
       setUploading(false);
     }
@@ -125,7 +125,7 @@ export default function SettingsPage() {
       setMessage({ type: "success", text: "Файл устгагдлаа" });
     } catch (err) {
       console.error("Remove error:", err);
-      setMessage({ type: "error", text: "Файл устгах бүтэлгүүтэй болсон" });
+      setMessage({ type: "error", text: "Файл устгах үед алдаа гарлаа" });
     } finally {
       setUploading(false);
     }
@@ -143,7 +143,7 @@ export default function SettingsPage() {
     <div className="space-y-6 max-w-2xl">
       <div>
         <h1 className="text-2xl font-bold text-slate-800">Тохиргоо</h1>
-        <p className="text-sm text-slate-500 mt-1">Вебсайтын глобал тохиргоо удирдалга</p>
+        <p className="text-sm text-slate-500 mt-1">Вебсайтын глобал тохиргоог удирдах</p>
       </div>
 
       {/* Status Message */}

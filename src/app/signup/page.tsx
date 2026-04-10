@@ -131,7 +131,7 @@ function SignupContent() {
             {lang === "mn" ? "Бүртгүүлэх" : "Sign Up"}
           </h1>
           <p className="text-[13px] text-slate-400 mt-1">
-            {lang === "mn" ? "Сэмжид Хүжирт Рашаан Сувилал" : "Semjid Khujirt Resort"}
+            {lang === "mn" ? "Сэмжид Хужирт Рашаан Сувилал" : "Semjid Khujirt Resort"}
           </p>
         </div>
 

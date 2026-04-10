@@ -42,7 +42,7 @@ const bookingConfirmationEmail = (booking: BookingData) => `
     <div class="container">
       <div class="header">
         <h1>✅ Захиалга баталгаажлаа</h1>
-        <p>Сэмжид Хүжирт Рашаан Сувилал</p>
+        <p>Сэмжид Хужирт Рашаан Сувилал</p>
       </div>
       
       <div class="content">
@@ -101,17 +101,17 @@ const bookingConfirmationEmail = (booking: BookingData) => `
         <p><strong>Дараагийн алхам:</strong></p>
         <ul>
           <li>📧 Энэ имэйлийг хадгалаарай - энэ таны баталгаа</li>
-          <li>📞 Холбоо барих: +976 (0) 70012191</li>
+          <li>📞 Холбоо барих: +976 88021191</li>
           <li>🛏️ Сувилалын өмнө дахин батлуулна</li>
-          <li>📄 Лимент письмо эсвэл шаардлагатай эмчилгээний лавлагаа авчрахыг мартаж орзуулалтай</li>
+          <li>📄 Хэрэв шаардлагатай бол эмчилгээний лавлагаа авчрахыг мартаж болохгүй!</li>
         </ul>
 
-        <p>Хэрэв та захиалгаа солих эсвэл цуцлахыг хүсвэл манай байрны аашны хэсэгтэй холбоо барина уу.</p>
+        <p>Хэрэв та захиалгаа солих эсвэл цуцлахыг хүсвэл манай холбогдох хэсэгтэй холбоо барина уу.</p>
       </div>
 
       <div class="footer">
-        <p>Сэмжид Хүжирт Рашаан Сувилал | www.semjid-khujirt.mn</p>
-        <p>© 2026 | Бүх эрхэ хүчинтэй</p>
+        <p>Сэмжид Хужирт Рашаан Сувилал | www.semjid-khujirt.mn</p>
+        <p>© 2026 | Бүх эрх хамгаалагдсан</p>
       </div>
     </div>
   </body>
@@ -138,7 +138,7 @@ const adminNotificationEmail = (booking: BookingData) => `
   <body>
     <div class="container">
       <div class="header">
-        <h1>📋 Шинэ захиалга хүлээлт байна</h1>
+        <h1>📋 Шинэ захиалга хүлээгдэж байна</h1>
         <span class="status">ШИНЭ</span>
       </div>
       
@@ -177,7 +177,7 @@ const adminNotificationEmail = (booking: BookingData) => `
         </div>
 
         <p><strong>ADMIN БАУЖ НЭЭХ:</strong></p>
-        <a href="https://semjid-khujirt.mn/admin/guests" style="display: inline-block; background: #1a4d3a; color: white; padding: 12px 30px; border-radius: 6px; text-decoration: none;">Админ панель руу ор</a>
+        <a href="https://semjid-khujirt.mn/admin/guests" style="display: inline-block; background: #1a4d3a; color: white; padding: 12px 30px; border-radius: 6px; text-decoration: none;">Админ панель руу орох</a>
       </div>
 
       <div class="footer">
@@ -196,14 +196,21 @@ export async function sendBookingConfirmationEmail(booking: BookingData) {
       return;
     }
 
+    // For now, send to admin email instead of guest email (testing mode limitation)
+    if (!process.env.ADMIN_EMAIL) {
+      console.warn("⚠️ ADMIN_EMAIL not set");
+      return;
+    }
+    const recipientEmail = process.env.ADMIN_EMAIL;
+
     const response = await resend.emails.send({
-      from: "Сэмжид Хүжирт Захиалга <booking@resend.dev>",
-      to: booking.email,
-      subject: `✅ Захиалга баталгаажлаа - ${booking.ref} | Сэмжид Хүжирт`,
+      from: "Сэмжид Хужирт Захиалга <booking@resend.dev>",
+      to: recipientEmail, // Send to admin for now
+      subject: `✅ Захиалга баталгаажлаа - ${booking.ref} | Сэмжид Хужирт (Зочин: ${booking.email})`,
       html: bookingConfirmationEmail(booking),
     });
 
-    console.log(`✅ Booking confirmation email sent to ${booking.email}`, response);
+    console.log(`✅ Booking confirmation email sent to admin (${recipientEmail}) for guest ${booking.email}`, response);
   } catch (error) {
     console.error("❌ Failed to send booking confirmation email:", error);
     throw error;
@@ -220,8 +227,8 @@ export async function sendAdminNotificationEmail(booking: BookingData) {
     }
 
     const response = await resend.emails.send({
-      from: "Сэмжид Хүжирт Админ <admin@resend.dev>",
-      to: adminEmail,
+      from: "Сэмжид Хужирт Админ <admin@resend.dev>",
+      to: adminEmail, // This should work in testing mode
       subject: `📋 Шинэ захиалга: ${booking.ref} - ${booking.fname} ${booking.lname}`,
       html: adminNotificationEmail(booking),
     });
@@ -247,7 +254,7 @@ export async function sendChatNotificationEmail(
     }
 
     const response = await resend.emails.send({
-      from: "Сэмжид Хүжирт Чат <chat@resend.dev>",
+      from: "Сэмжид Хужирт Чат <chat@resend.dev>",
       to: adminEmail,
       subject: `💬 Шинэ чат мессеж: ${guestName}`,
       html: `
@@ -255,7 +262,7 @@ export async function sendChatNotificationEmail(
         <p><strong>Зочин:</strong> ${guestName}</p>
         <p><strong>Мессеж:</strong></p>
         <blockquote>${message}</blockquote>
-        <a href="https://semjid-khujirt.mn/admin/chat" style="display: inline-block; background: #1a4d3a; color: white; padding: 10px 20px; border-radius: 6px; text-decoration: none; margin-top: 15px;">Чат панель руу ор</a>
+        <a href="https://semjid-khujirt.mn/admin/chat" style="display: inline-block; background: #1a4d3a; color: white; padding: 10px 20px; border-radius: 6px; text-decoration: none; margin-top: 15px;">Чат панель руу орох</a>
       `,
     });
 
