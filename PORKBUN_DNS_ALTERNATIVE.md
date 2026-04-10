@@ -23,21 +23,64 @@ Priority: 10
 TTL: 600
 ```
 
-## 🖥️ Step-by-Step Instructions
+## 🖥️ Step-by-Step Instructions (Updated Interface)
 
 ### Step 1: Sign up for Porkbun
 1. Go to https://porkbun.com/
-2. Click **"Get Started"** or **"Sign Up"**
-3. Create account (they accept crypto payments too)
+2. Click **"Get Started"** or **"Sign Up"** (usually in top right)
+3. Create account with email
 4. Verify email
+5. Login to dashboard
 
-### Step 2: Add Your Domain
-1. In Porkbun dashboard, click **"Domains"**
-2. Click **"Add Domain"**
-3. Enter: `semjidkhujirt.com`
-4. Click **"Add Domain"**
+### Step 2: Find the Add Domain Field
+After logging in, you should see the Porkbun dashboard:
 
-### Step 3: Transfer Domain (Optional but Recommended)
+#### Option A: If you see "Domains" section
+1. Look for **"Domains"** in the left sidebar or top menu
+2. Click on **"Domains"**
+3. Look for **"Add Domain"** button or **"+" icon**
+4. Click it to see the domain input field
+
+#### Option B: If you see main dashboard
+1. Look for a **search bar** or **"Add a domain"** text field
+2. It might say **"Enter a domain name"** or **"Add domain to DNS"**
+3. The field might be labeled **"Domain"** or **"Domain Name"**
+
+#### Option C: Direct URL
+- Try: https://porkbun.com/account/domains
+- Or: https://porkbun.com/account
+
+### Step 3: Add Your Domain
+1. In the domain field, enter: `semjidkhujirt.com`
+2. Click **"Add Domain"** or **"Add"** button
+3. Porkbun will add it for DNS management (you keep registration at Namecheap)
+
+### Step 4: Confirm Domain Addition
+1. You should see `semjidkhujirt.com` in your domains list
+2. Click on it to manage DNS
+
+## 🔍 Troubleshooting "Add Domain" Field
+
+### If you can't find the domain input field:
+1. **Make sure you're logged in**
+2. **Try these URLs**:
+   - https://porkbun.com/account/domains
+   - https://porkbun.com/account
+   - https://porkbun.com/domains
+3. **Look for**:
+   - "Add Domain" button
+   - "Add a domain" text field
+   - "Enter domain name" input
+   - "+" icon next to Domains
+
+### If domain field is missing:
+- **Refresh the page**
+- **Try incognito mode**
+- **Clear browser cache**
+- **Contact Porkbun support** (they have live chat)
+
+### Alternative: Use their API
+If web interface isn't working, you can use their API, but web interface should work.
 1. Porkbun will offer to transfer your domain from Namecheap
 2. This costs ~$10-15 but gives you full control
 3. **OR** just use their DNS without transferring

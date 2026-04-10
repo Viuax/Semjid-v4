@@ -27,8 +27,8 @@ export default function TermsPageClient() {
           <h2 className="text-xl font-semibold text-slate-800">{lang === "mn" ? "Захиалга ба төлбөр" : "Booking and Payment"}</h2>
           <p className="text-slate-500 leading-relaxed">
             {lang === "mn"
-              ? "Захиалгыг баталгаажуулахын тулд төлбөрийг QPay, картаар эсвэл банкны шилжүүлгээр дамжуулж болно."
-              : "To confirm your reservation, payment can be made via QPay, card, or bank transfer."}
+              ? "Захиалгыг баталгаажуулахын тулд төлбөрийг картаар эсвэл банкны шилжүүлгээр дамжуулж болно."
+              : "To confirm your reservation, payment can be made via card or bank transfer."}
           </p>
         </section>
 

@@ -34,7 +34,7 @@ export function BookingPageContent() {
   const [specialCode, setSpecialCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [pay, setPay] = useState<PayMethod>("qpay");
+  const [pay, setPay] = useState<PayMethod>("card");
 
   // Availability state
   const [roomAvailability, setRoomAvailability] = useState<Record<string, RoomInfo>>({});
@@ -243,7 +243,15 @@ export function BookingPageContent() {
       setSpecialCode(data.specialCode || "");
       setDone(true);
     } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : "Unknown error";
+      console.error("❌ Booking error details:", {
+        error: err,
+        type: typeof err,
+        constructor: err?.constructor?.name,
+        message: err instanceof Error ? err.message : String(err),
+        stack: err instanceof Error ? err.stack : undefined
+      });
+
+      const errorMsg = err instanceof Error ? err.message : String(err) || "Unknown error";
       console.error("❌ Booking error:", errorMsg);
       setError(errorMsg || (lang === "mn" ? "Захиалга илгээхэд алдаа гарлаа. Дахин оролдоно уу." : "Failed to submit. Please try again."));
     } finally {
@@ -513,7 +521,15 @@ export function BookingPageContent() {
                         className={`border-2 rounded-xl overflow-hidden transition-all ${isUnavailable ? "border-red-200 opacity-70 cursor-not-allowed" : sel ? "border-teal shadow-lg shadow-teal/10 cursor-pointer" : "border-slate-100 hover:border-slate-200 cursor-pointer"}`}
                       >
                         <div className="relative h-28 overflow-hidden bg-slate-100">
-                          <div className="absolute inset-0 bg-slate-200/50" />
+                          {category?.img && (
+                            <Image 
+                              src={category.img} 
+                              alt={`${r.type[lang]} ${r.number}`} 
+                              fill 
+                              className="object-cover"
+                            />
+                          )}
+                          <div className="absolute inset-0 bg-slate-200/20" />
                           <div className="absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-slate-900/80 to-transparent" />
                           <div className="absolute left-3 top-3 rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-semibold text-slate-700 shadow-sm">
                             #{r.number}
@@ -598,12 +614,36 @@ export function BookingPageContent() {
                 <h2 className="font-serif text-xl text-slate-800 mb-5">{t.booking.payTitle[lang]}</h2>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
                   {([["qpay",QrCode,t.booking.qpay],["card",QrCode,t.booking.card],["bank",Building2,t.booking.bank],["cash",Banknote,t.booking.cash]] as const).map(([id,Icon,label]) => (
-                    <div key={id} onClick={()=>setPay(id)} className={`p-4 border-2 rounded-xl cursor-pointer text-center transition-all ${pay===id?"border-teal bg-teal/5":"border-slate-100 hover:border-slate-200"}`}>
-                      <Icon size={22} className={`mx-auto mb-1.5 ${pay===id?"text-teal":"text-slate-300"}`}/>
-                      <div className={`text-[11px] font-medium ${pay===id?"text-teal":"text-slate-400"}`}>{(label as {mn:string;en:string})[lang]}</div>
+                    <div key={id} onClick={id === "qpay" ? undefined : ()=>setPay(id)} className={`p-4 border-2 rounded-xl text-center transition-all ${id === "qpay" ? "border-slate-100 bg-slate-50 cursor-not-allowed opacity-60" : pay===id?"border-teal bg-teal/5":"border-slate-100 hover:border-slate-200"} ${id !== "qpay" ? "cursor-pointer" : ""}`}>
+                      <Icon size={22} className={`mx-auto mb-1.5 ${id === "qpay" ? "text-slate-300" : pay===id?"text-teal":"text-slate-300"}`}/>
+                      <div className={`text-[11px] font-medium ${id === "qpay" ? "text-slate-400" : pay===id?"text-teal":"text-slate-400"}`}>{(label as {mn:string;en:string})[lang]}</div>
+                      {id === "qpay" && (
+                        <div className="text-[9px] text-slate-400 mt-1">
+                          {lang === "mn" ? "Тун удахгүй" : "Coming Soon"}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
+                
+                {/* QPay Coming Soon Notice */}
+                <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 mb-6">
+                  <div className="flex items-start gap-3">
+                    <Info size={16} className="text-blue-500 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <h4 className="text-[13px] font-medium text-blue-800 mb-1">
+                        {lang === "mn" ? "QPay түр хугацаанд боломжгүй" : "QPay Temporarily Unavailable"}
+                      </h4>
+                      <p className="text-[12px] text-blue-600">
+                        {lang === "mn" 
+                          ? "QPay төлбөрийн систем түр хугацаанд ажиллахгүй байна. Бид удахгүй энэ үйлчилгээг сэргээх болно. Түр зуур банкны шилжүүлэг эсвэл бэлэн мөнгөөр төлөх боломжтой."
+                          : "QPay payment system is temporarily unavailable. We will restore this service soon. For now, you can pay via bank transfer or cash on arrival."
+                        }
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                
                 {pay==="bank"&&(<div className="border border-slate-100 rounded-xl p-5 bg-slate-50"><h3 className="text-[13px] font-semibold text-slate-700 mb-3">{lang==="mn"?"Дансны мэдээлэл":"Bank Account Details"}</h3>{[[lang==="mn"?"Хүлээн авагч":"Recipient","Батмөнх Цэрэнханд"],[lang==="mn"?"Данс":"Account","08 0005 00 557333756 (Хаан Банк)"],[lang==="mn"?"Утга":"Reference",t.booking.bankRef[lang]],[lang==="mn"?"Дүн":"Amount",formatMNT(total)]].map(([k,v]) => (<div key={k} className="flex justify-between py-2 border-b border-slate-100 last:border-0"><span className="text-[12px] text-slate-400">{k}</span><span className="text-[12px] font-medium text-slate-700">{v}</span></div>))}</div>)}
                 {(pay==="card"||pay==="cash")&&(<div className="border border-slate-100 rounded-xl p-5 bg-slate-50 text-center"><p className="text-[14px] text-slate-500">{pay==="card"?(lang==="mn"?"Ирэх үедээ картаар төлнө үү.":"Pay by card on arrival."):(lang==="mn"?"Ирэх үедээ бэлэн мөнгөөр төлнө үү.":"Pay in cash upon arrival.")}</p></div>)}
               </div>

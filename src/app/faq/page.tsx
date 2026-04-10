@@ -13,7 +13,7 @@ const faqs = [
   },
   {
     question: "What payment methods do you accept?",
-    answer: "We accept QPay, bank transfers, and cash payments upon arrival."
+    answer: "We accept bank transfers and cash payments upon arrival. QPay is temporarily unavailable but will be restored soon."
   },
   {
     question: "Can I cancel or modify my booking?",

@@ -196,21 +196,17 @@ export async function sendBookingConfirmationEmail(booking: BookingData) {
       return;
     }
 
-    // For now, send to admin email instead of guest email (testing mode limitation)
-    if (!process.env.ADMIN_EMAIL) {
-      console.warn("⚠️ ADMIN_EMAIL not set");
-      return;
-    }
-    const recipientEmail = process.env.ADMIN_EMAIL;
+    // Send to the actual guest email address
+    const recipientEmail = booking.email;
 
     const response = await resend.emails.send({
       from: "Сэмжид Хужирт Захиалга <booking@resend.dev>",
-      to: recipientEmail, // Send to admin for now
-      subject: `✅ Захиалга баталгаажлаа - ${booking.ref} | Сэмжид Хужирт (Зочин: ${booking.email})`,
+      to: recipientEmail,
+      subject: `✅ Захиалга баталгаажлаа - ${booking.ref} | Сэмжид Хужирт`,
       html: bookingConfirmationEmail(booking),
     });
 
-    console.log(`✅ Booking confirmation email sent to admin (${recipientEmail}) for guest ${booking.email}`, response);
+    console.log(`✅ Booking confirmation email sent to guest ${recipientEmail}`, response);
   } catch (error) {
     console.error("❌ Failed to send booking confirmation email:", error);
     throw error;
