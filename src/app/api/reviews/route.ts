@@ -36,9 +36,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
-    // Validate rating is 1-5
-    if (rating < 1 || rating > 5) {
-      return NextResponse.json({ error: "Rating must be between 1 and 5" }, { status: 400 });
+    // Convert and validate rating
+    const ratingNum = parseInt(rating);
+    if (isNaN(ratingNum) || ratingNum < 1 || ratingNum > 5) {
+      return NextResponse.json({ error: "Rating must be a number between 1 and 5" }, { status: 400 });
     }
 
     const { data, error } = await supabase
@@ -46,7 +47,7 @@ export async function POST(req: Request) {
       .insert({
         room_id,
         fname,
-        rating: parseInt(rating),
+        rating: ratingNum,
         comment,
         approved: false, // Reviews default to not approved
       })
