@@ -96,7 +96,7 @@ export default function AnalyticsPage() {
       <div>
         <h1 className="text-2xl font-bold text-slate-900">Аналитик</h1>
         <p className="text-sm text-slate-500 mt-1">
-          Захиалга, орооны ашиглалт, орлогын мэдээлэл
+          Захиалга, өрөөний ашиглалт, орлогын мэдээлэл
         </p>
       </div>
 

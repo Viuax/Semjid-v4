@@ -49,7 +49,7 @@ export default function ReviewsPage() {
   };
 
   const deleteReview = async (id: string) => {
-    if (!confirm("Энэ санал үнэлгээг устгахдаа чадах уу?")) return;
+    if (!confirm("Энэ санал үнэлгээг устгахдаа итгэлтэй байна уу?")) return;
     try {
       await supabase.from("reviews").delete().eq("id", id);
       setReviews((prev) => prev.filter((r) => r.id !== id));

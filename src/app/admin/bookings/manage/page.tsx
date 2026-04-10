@@ -73,7 +73,7 @@ export default function BookingsManagementPage() {
   };
 
   const deleteBooking = async (id: string) => {
-    if (!confirm("Энэ захиалгыг цуцлахдаа чадах уу?")) return;
+    if (!confirm("Энэ захиалгыг цуцлахад алдаа гарлаа?")) return;
     try {
       await supabase.from("bookings").delete().eq("id", id);
       loadBookings();
