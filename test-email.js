@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 import { config } from "dotenv";
 import { Resend } from "resend";
 
@@ -9,7 +11,7 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 console.log("🔑 RESEND_API_KEY loaded:", process.env.RESEND_API_KEY ? "Yes" : "No");
 console.log("📧 ADMIN_EMAIL:", process.env.ADMIN_EMAIL);
 
-export async function testEmail() {
+async function testEmail() {
   try {
     console.log("🧪 Testing email configuration...");
 
@@ -17,16 +19,17 @@ export async function testEmail() {
     const domains = await resend.domains.list();
     console.log("✅ API Key valid, domains:", domains.data?.length || 0);
 
-    // Test sending email
+    // Test sending email (to verified email only for testing)
     const result = await resend.emails.send({
       from: "Test <test@resend.dev>",
-      to: process.env.ADMIN_EMAIL,
+      to: "dulguunlkh17@gmail.com", // Verified email for testing
       subject: "Email Test - Semjid Booking System",
       html: `
         <h1>🧪 Email Test</h1>
         <p>This is a test email from the Semjid booking system.</p>
         <p>If you receive this, the email system is working correctly.</p>
         <p>Time: ${new Date().toISOString()}</p>
+        <p>Admin email configured: ${process.env.ADMIN_EMAIL}</p>
       `,
     });
 
@@ -46,5 +49,3 @@ testEmail().then(result => {
   console.error("Test failed:", err);
   process.exit(1);
 });
-
-export { testEmail };

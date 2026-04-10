@@ -77,7 +77,7 @@ export const t = {
   booking: {
     badge:    { mn: "Онлайн захиалга",   en: "Online Booking"     },
     title:    { mn: "Захиалга өгөх",     en: "Make a Reservation" },
-    sub:      { mn: "QPay, карт болон банкны шилжүүлгээр төлөх боломжтой.", en: "Pay via QPay, card, or bank transfer." },
+    sub:      { mn: "Банкны шилжүүлэг, карт болон бэлэн мөнгөөр төлөх боломжтой.", en: "Pay via bank transfer, card, or cash." },
     s1:       { mn: "Хувийн мэдээлэл",  en: "Personal Info"      },
     s2:       { mn: "Өрөө & Эмчилгээ",  en: "Room & Treatments"  },
     s3:       { mn: "Төлбөр",           en: "Payment"            },

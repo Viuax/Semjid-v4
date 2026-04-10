@@ -203,7 +203,15 @@ export async function POST(req: NextRequest) {
     console.log("🎉 Booking completed successfully!");
     return NextResponse.json({ success: true, ref, id: data.id, specialCode });
   } catch (err: unknown) {
-    const errorMsg = err instanceof Error ? err.message : "Unknown error";
+    console.error("❌ Booking error details:", {
+      error: err,
+      type: typeof err,
+      constructor: err?.constructor?.name,
+      message: err instanceof Error ? err.message : String(err),
+      stack: err instanceof Error ? err.stack : undefined
+    });
+
+    const errorMsg = err instanceof Error ? err.message : String(err) || "Unknown error";
     console.error("❌ Booking error:", errorMsg);
     return NextResponse.json({ error: errorMsg || "Failed to save booking" }, { status: 500 });
   }
